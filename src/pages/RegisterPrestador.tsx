@@ -8,11 +8,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, CheckCircle, AlertCircle, Eye, EyeOff, Briefcase } from "lucide-react";
+import { Upload, CheckCircle, AlertCircle, Eye, EyeOff, Briefcase, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+
+// 🎯 Função de API Integrada
+const apiPost = async (url: string, payload: any) => {
+    // Se for FormData, o browser define o Content-Type automaticamente
+    const isFormData = payload instanceof FormData;
+    const headers = isFormData ? {} : { 'Content-Type': 'application/json' };
+    const body = isFormData ? payload : JSON.stringify(payload);
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: headers,
+        body: body,
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({ message: 'Erro desconhecido na requisição' }));
+        // Lança string JSON para ser parseada no catch
+        throw new Error(JSON.stringify(errorBody)); 
+    }
+
+    return response.json();
+};
 
 const prestadorSchema = z.object({
   nomeCompleto: z.string()
@@ -49,8 +71,11 @@ const RegisterPrestador = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Estados para arquivos
   const [documento, setDocumento] = useState<File | null>(null);
   const [certificacoes, setCertificacoes] = useState<File | null>(null);
+  
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   const {
@@ -74,7 +99,7 @@ const RegisterPrestador = () => {
 
     if (score <= 2) return { score, text: "Fraca", color: "text-destructive" };
     if (score <= 3) return { score, text: "Média", color: "text-yellow-500" };
-    return { score, text: "Forte", color: "text-accent" };
+    return { score, text: "Forte", color: "text-green-600" }; // Ajustei para verde para ficar consistente
   };
 
   const passwordStrength = getPasswordStrength(senha || "");
@@ -110,6 +135,7 @@ const RegisterPrestador = () => {
   };
 
   const onSubmit = async (data: PrestadorFormData) => {
+    // Validação de arquivos obrigatórios
     if (!documento) {
       setFeedback({
         type: 'error',
@@ -117,40 +143,79 @@ const RegisterPrestador = () => {
       });
       return;
     }
+    // Nota: Certificações são opcionais no model do Django (blank=True), 
+    // mas se quiser obrigar, descomente abaixo:
+    /*
+    if (!certificacoes) {
+        setFeedback({ type: 'error', message: 'Envie suas certificações.' });
+        return;
+    }
+    */
 
     setIsLoading(true);
     setFeedback(null);
 
-    try {
-      // Simular API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Simular diferentes cenários
-      const scenarios = ['success', 'email_exists'];
-      const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
-      
-      if (scenario === 'email_exists') {
-        setFeedback({
-          type: 'error',
-          message: 'Este e-mail já está cadastrado. Tente fazer login ou use outro e-mail.'
-        });
-      } else {
-        setFeedback({
-          type: 'success',
-          message: 'Cadastro realizado com sucesso! Seu perfil será analisado em até 24 horas.'
-        });
-        
-        toast({
-          title: "Cadastro realizado!",
-          description: "Bem-vindo como prestador ao FAZ PRA MIM.",
-        });
+    // 🔹 CONSTRUINDO O FORMDATA PARA O BACKEND
+    const formData = new FormData();
+    
+    // Campos do User (Auth)
+    formData.append("username", data.email); 
+    formData.append("email", data.email);
+    formData.append("password", data.senha);
+    formData.append("password2", data.confirmarSenha);
 
-        setTimeout(() => navigate("/login"), 3000);
+    // Campos do ProviderProfile (Mapeando do seu form para o backend)
+    formData.append("full_name", data.nomeCompleto);
+    // Backend exige professional_email, usamos o mesmo do login por enquanto
+    formData.append("professional_email", data.email); 
+    formData.append("service_address", data.endereco);
+    formData.append("technical_qualification", data.qualificacaoTecnica);
+    
+    // Nota: O backend ProviderProfile atual não tem campo 'phone'. 
+    // Se quiser salvar o telefone, precisaremos adicionar esse campo ao modelo ProviderProfile no Django.
+    // Por enquanto, ele será ignorado pelo backend, mas enviamos caso adicione depois.
+    formData.append("phone", data.telefone);
+
+    // Arquivos (Nomes devem bater com ProviderRegisterSerializer)
+    if (documento) formData.append("identity_document", documento);
+    if (certificacoes) formData.append("certifications", certificacoes);
+
+    try {
+      const apiUrl = "http://127.0.0.1:8000/api/accounts/register/provider/";
+      
+      const response = await apiPost(apiUrl, formData);
+
+      toast({
+        title: "Cadastro realizado!",
+        description: (response as any)?.message || "Bem-vindo como prestador ao FAZ PRA MIM.",
+      });
+
+      setFeedback({
+        type: 'success',
+        message: 'Cadastro realizado com sucesso! Você será redirecionado para o login.'
+      });
+
+      setTimeout(() => navigate("/login"), 3000);
+
+    } catch (error: any) {
+      let errorMessage = 'Erro interno. Tente novamente.';
+      try {
+          // Tenta ler o erro estruturado do Django
+          const json = JSON.parse(error.message);
+          if (typeof json === 'object' && json !== null) {
+              const key = Object.keys(json)[0];
+              const msg = Array.isArray(json[key]) ? json[key][0] : json[key];
+              errorMessage = `${key.toUpperCase()}: ${msg}`;
+          } else {
+              errorMessage = error.message;
+          }
+      } catch {
+          errorMessage = error.message;
       }
-    } catch (error) {
+
       setFeedback({
         type: 'error',
-        message: 'Erro interno. Tente novamente em alguns minutos.'
+        message: errorMessage
       });
     } finally {
       setIsLoading(false);
@@ -336,11 +401,21 @@ const RegisterPrestador = () => {
                       onChange={handleDocumentUpload}
                       className="hidden"
                     />
-                    <label htmlFor="documento" className="cursor-pointer">
+                    <label htmlFor="documento" className="cursor-pointer block">
                       <div className="flex flex-col items-center space-y-2">
-                        <Upload className="w-8 h-8 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                          {documento ? documento.name : "Clique para enviar RG, CNH ou Passaporte"}
+                        {documento ? (
+                          <CheckCircle className="w-8 h-8 text-green-500" />
+                        ) : (
+                          <Upload className="w-8 h-8 text-muted-foreground" />
+                        )}
+                        <p
+                          className={`text-sm font-medium ${
+                            documento ? "text-green-600" : "text-muted-foreground"
+                          }`}
+                        >
+                          {documento
+                            ? `Documento selecionado: ${documento.name}`
+                            : "Clique para enviar RG, CNH ou Passaporte"}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           PDF, JPG ou PNG até 5MB
@@ -350,9 +425,9 @@ const RegisterPrestador = () => {
                   </div>
                 </div>
 
-                {/* Upload de Certificações (Opcional) */}
+                {/* Upload de Certificações */}
                 <div className="form-field">
-                  <Label>Certificações ou Currículo (Opcional)</Label>
+                  <Label>Certificações ou Currículo</Label>
                   <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors">
                     <input
                       type="file"
@@ -361,11 +436,21 @@ const RegisterPrestador = () => {
                       onChange={handleCertificacoesUpload}
                       className="hidden"
                     />
-                    <label htmlFor="certificacoes" className="cursor-pointer">
+                    <label htmlFor="certificacoes" className="cursor-pointer block">
                       <div className="flex flex-col items-center space-y-2">
-                        <Upload className="w-8 h-8 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                          {certificacoes ? certificacoes.name : "Adicione certificados, diplomas ou currículo"}
+                        {certificacoes ? (
+                          <CheckCircle className="w-8 h-8 text-green-500" />
+                        ) : (
+                          <Upload className="w-8 h-8 text-muted-foreground" />
+                        )}
+                        <p
+                          className={`text-sm font-medium ${
+                            certificacoes ? "text-green-600" : "text-muted-foreground"
+                          }`}
+                        >
+                          {certificacoes
+                            ? `Arquivo selecionado: ${certificacoes.name}`
+                            : "Adicione certificados, diplomas ou currículo"}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           PDF, DOC, JPG ou PNG até 10MB
@@ -380,25 +465,43 @@ const RegisterPrestador = () => {
 
                 {/* Feedback Messages */}
                 {feedback && (
-                  <Alert className={feedback.type === 'success' ? "border-accent" : "border-destructive"}>
+                  <Alert
+                    className={
+                      feedback.type === 'success'
+                        ? "border-green-500 bg-green-50"
+                        : "border-destructive bg-red-50"
+                    }
+                  >
                     {feedback.type === 'success' ? (
-                      <CheckCircle className="h-4 w-4 text-accent" />
+                      <CheckCircle className="h-4 w-4 text-green-600" />
                     ) : (
                       <AlertCircle className="h-4 w-4 text-destructive" />
                     )}
-                    <AlertDescription className={feedback.type === 'success' ? "text-accent" : "text-destructive"}>
+                    <AlertDescription
+                      className={
+                        feedback.type === 'success'
+                          ? "text-green-700"
+                          : "text-destructive"
+                      }
+                    >
                       {feedback.message}
                     </AlertDescription>
                   </Alert>
                 )}
 
                 {/* Submit Button */}
-                <Button 
-                  type="submit" 
-                  className="w-full bg-accent hover:bg-accent-hover" 
+                <Button
+                  type="submit"
+                  className="w-full bg-accent hover:bg-accent-hover"
                   disabled={isLoading}
                 >
-                  {isLoading ? "Cadastrando..." : "Enviar Cadastro"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Cadastrando...
+                    </>
+                  ) : (
+                    "Enviar Cadastro"
+                  )}
                 </Button>
               </form>
             </CardContent>
@@ -407,7 +510,7 @@ const RegisterPrestador = () => {
           <div className="text-center mt-8">
             <p className="text-muted-foreground">
               Já tem uma conta?{" "}
-              <button 
+              <button
                 onClick={() => navigate("/login")}
                 className="text-primary hover:underline font-semibold"
               >

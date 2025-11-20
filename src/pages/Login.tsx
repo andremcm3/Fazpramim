@@ -7,10 +7,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+// Importe seus componentes de Header e Footer
+import Header from "@/components/Header"; // Verifique se o caminho está correto no seu projeto
+import Footer from "@/components/Footer"; // Verifique se o caminho está correto no seu projeto
+import { useToast } from "@/hooks/use-toast"; // Se tiver esse hook, senão pode remover ou usar mock
+
+// 🎯 Função de API (Autocontida)
+const apiPost = async (url: string, payload: any) => {
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            // Se precisar de auth no futuro, o header iria aqui
+        },
+        body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({ message: 'Erro desconhecido' }));
+        throw new Error(JSON.stringify(errorBody)); 
+    }
+
+    return response.json();
+};
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -21,6 +42,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 const Login = () => {
   const navigate = useNavigate();
+  const { toast } = useToast(); // Se não tiver o hook, pode comentar
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,31 +59,68 @@ const Login = () => {
     setIsLoading(true);
     setError(null);
 
+    // 🔹 Mapeando os dados para o formato que o Django/Knox espera
+    // O LoginSerializer padrão espera 'username' e 'password'.
+    // Como usamos o email como username no cadastro, enviamos o email no campo username.
+    const apiPayload = {
+        username: data.email,
+        password: data.senha
+    };
+
     try {
-      // Simular API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // 🎯 URL do Endpoint de Login
+      const apiUrl = "http://127.0.0.1:8000/api/accounts/login/";
       
-      // Simular erro de login ocasional
-      if (Math.random() > 0.7) {
-        setError("E-mail ou senha incorretos. Tente novamente.");
-        return;
+      const response = await apiPost(apiUrl, apiPayload);
+
+      // ✅ Sucesso!
+      // O backend Knox retorna algo como: { "expiry": "...", "token": "..." } ou { "user": {..}, "token": "..." }
+      // Precisamos salvar esse token para usar nas próximas requisições privadas.
+      
+      if (response.token) {
+          localStorage.setItem('token', response.token);
+          localStorage.setItem('user', JSON.stringify(response.user || {})); // Salva dados básicos do user se vierem
+      }
+
+      if (toast) {
+        toast({
+            title: "Login realizado!",
+            description: "Bem-vindo de volta.",
+            variant: "default", // ou 'default' se 'success' não existir no seu componente
+        });
       }
       
-      // Sucesso - redirecionar para dashboard (que ainda não existe)
-      navigate("/");
-    } catch (error) {
-      setError("Erro interno. Tente novamente em alguns minutos.");
+      // Redirecionar para a Home (Dashboard)
+      // Pode ser "/" ou "/dashboard" dependendo da sua rota
+      setTimeout(() => navigate("/"), 1000);
+
+    } catch (err: any) {
+      let msg = "E-mail ou senha incorretos.";
+      
+      // Tenta ler mensagens específicas do backend (ex: "Credenciais inválidas")
+      try {
+          const json = JSON.parse(err.message);
+          if (json.non_field_errors) {
+              msg = json.non_field_errors[0]; // Erro comum do DRF para login
+          } else if (json.detail) {
+              msg = json.detail;
+          }
+      } catch {
+          // Mantém a mensagem padrão
+      }
+      
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
       
-      <main className="container mx-auto px-4 py-16">
-        <div className="max-w-md mx-auto">
+      <main className="container mx-auto px-4 py-16 flex-grow flex items-center justify-center">
+        <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">
               Bem-vindo de volta
@@ -94,7 +153,7 @@ const Login = () => {
                     />
                   </div>
                   {errors.email && (
-                    <p className="text-sm text-destructive">{errors.email.message}</p>
+                    <p className="text-sm text-destructive mt-1">{errors.email.message}</p>
                   )}
                 </div>
 
@@ -113,21 +172,21 @@ const Login = () => {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                   {errors.senha && (
-                    <p className="text-sm text-destructive">{errors.senha.message}</p>
+                    <p className="text-sm text-destructive mt-1">{errors.senha.message}</p>
                   )}
                 </div>
 
                 {/* Error Message */}
                 {error && (
-                  <Alert className="border-destructive">
+                  <Alert className="border-destructive bg-red-50">
                     <AlertCircle className="h-4 w-4 text-destructive" />
-                    <AlertDescription className="text-destructive">
+                    <AlertDescription className="text-destructive ml-2">
                       {error}
                     </AlertDescription>
                   </Alert>
@@ -139,21 +198,30 @@ const Login = () => {
                   className="w-full bg-primary hover:bg-primary-hover" 
                   disabled={isLoading}
                 >
-                  {isLoading ? "Entrando..." : "Entrar"}
+                  {isLoading ? (
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Entrando...
+                    </>
+                  ) : (
+                    "Entrar"
+                  )}
                 </Button>
 
                 {/* Links */}
-                <div className="text-center space-y-2">
+                <div className="text-center space-y-2 pt-2">
                   <button 
                     type="button"
-                    className="text-sm text-muted-foreground hover:text-primary"
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                    onClick={() => console.log("Implementar recuperação de senha")}
                   >
                     Esqueceu sua senha?
                   </button>
                   <div className="text-sm text-muted-foreground">
                     Não tem uma conta?{" "}
+                    {/* Aqui assumo que você tem uma página de seleção ou vai direto pra cliente */}
                     <button 
-                      onClick={() => navigate("/register")}
+                      type="button"
+                      onClick={() => navigate("/register")} 
                       className="text-primary hover:underline font-semibold"
                     >
                       Cadastre-se aqui
