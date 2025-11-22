@@ -1,0 +1,138 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* FAZ PRA MIM Design System - Modern service marketplace interface */
+
+@layer base {
+  :root {
+    /* Base colors - clean and modern */
+    --background: 250 250% 99%;
+    --foreground: 222 47% 11%;
+
+    /* Card and surfaces */
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Brand colors - Blue primary, Green accent */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 217 91% 55%;
+
+    --secondary: 214 32% 91%;
+    --secondary-foreground: 222 47% 11%;
+
+    --accent: 158 64% 52%;
+    --accent-foreground: 0 0% 100%;
+    --accent-hover: 158 64% 47%;
+
+    /* Neutral tones */
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.75rem;
+
+    /* Custom design tokens */
+    --brand-gradient: linear-gradient(135deg, hsl(217 91% 60%), hsl(158 64% 52%));
+    --surface-gradient: linear-gradient(145deg, hsl(0 0% 100%), hsl(214 32% 98%));
+    --shadow-soft: 0 4px 6px -1px hsl(217 91% 60% / 0.1), 0 2px 4px -1px hsl(217 91% 60% / 0.06);
+    --shadow-medium: 0 10px 15px -3px hsl(217 91% 60% / 0.1), 0 4px 6px -2px hsl(217 91% 60% / 0.05);
+    --shadow-large: 0 20px 25px -5px hsl(217 91% 60% / 0.1), 0 10px 10px -5px hsl(217 91% 60% / 0.04);
+    
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-spring: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 250 250% 99%;
+
+    --card: 222 47% 11%;
+    --card-foreground: 250 250% 99%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 250 250% 99%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 217 91% 55%;
+
+    --secondary: 217 33% 18%;
+    --secondary-foreground: 250 250% 99%;
+
+    --accent: 158 64% 52%;
+    --accent-foreground: 0 0% 100%;
+    --accent-hover: 158 64% 47%;
+
+    --muted: 217 33% 18%;
+    --muted-foreground: 215 20% 65%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 217 33% 18%;
+    --input: 217 33% 18%;
+    --ring: 217 91% 60%;
+
+    --brand-gradient: linear-gradient(135deg, hsl(217 91% 60%), hsl(158 64% 52%));
+    --surface-gradient: linear-gradient(145deg, hsl(217 33% 15%), hsl(217 33% 18%));
+    --shadow-soft: 0 4px 6px -1px hsl(0 0% 0% / 0.3), 0 2px 4px -1px hsl(0 0% 0% / 0.2);
+    --shadow-medium: 0 10px 15px -3px hsl(0 0% 0% / 0.3), 0 4px 6px -2px hsl(0 0% 0% / 0.2);
+    --shadow-large: 0 20px 25px -5px hsl(0 0% 0% / 0.3), 0 10px 10px -5px hsl(0 0% 0% / 0.2);
+    
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-spring: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@layer components {
+  /* Brand button variants */
+  .btn-hero {
+    @apply bg-[var(--brand-gradient)] text-white font-semibold px-8 py-4 rounded-lg 
+           shadow-[var(--shadow-medium)] hover:shadow-[var(--shadow-large)] 
+           transition-[var(--transition-smooth)] hover:scale-105;
+  }
+  
+  .btn-outline-brand {
+    @apply border-2 border-primary text-primary bg-transparent hover:bg-primary 
+           hover:text-primary-foreground font-semibold px-6 py-3 rounded-lg
+           transition-[var(--transition-smooth)];
+  }
+
+  /* Surface components */
+  .surface-card {
+    @apply bg-[var(--surface-gradient)] border border-border rounded-xl 
+           shadow-[var(--shadow-soft)] p-6;
+  }
+
+  /* Form styling */
+  .form-field {
+    @apply space-y-2;
+  }
+  
+  .form-input {
+    @apply w-full px-4 py-3 rounded-lg border border-input bg-background
+           focus:border-ring focus:ring-2 focus:ring-ring/20 outline-none
+           transition-[var(--transition-smooth)] placeholder:text-muted-foreground;
+  }
+}
