@@ -9,18 +9,22 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-// Importe seus componentes de Header e Footer
-import Header from "@/components/Header"; // Verifique se o caminho está correto no seu projeto
-import Footer from "@/components/Footer"; // Verifique se o caminho está correto no seu projeto
-import { useToast } from "@/hooks/use-toast"; // Se tiver esse hook, senão pode remover ou usar mock
 
-// 🎯 Função de API (Autocontida)
+// ✅ RESOLUÇÃO DOS IMPORTS:
+// Mantemos os imports de UI e Layout
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+// Mantemos o hook que precisamos para notificações
+import { useToast } from "@/hooks/use-toast";
+// O hook useAuth do outro dev fica aqui, mas não vamos usar agora para não quebrar sua lógica
+// import { useAuth } from "@/hooks/useAuth"; 
+
+// 🎯 MANTEMOS SUA FUNÇÃO DE INTEGRAÇÃO (HEAD)
 const apiPost = async (url: string, payload: any) => {
     const response = await fetch(url, {
         method: 'POST',
         headers: { 
             'Content-Type': 'application/json',
-            // Se precisar de auth no futuro, o header iria aqui
         },
         body: JSON.stringify(payload),
     });
@@ -42,7 +46,12 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 const Login = () => {
   const navigate = useNavigate();
-  const { toast } = useToast(); // Se não tiver o hook, pode comentar
+  
+  // ✅ RESOLUÇÃO DOS HOOKS:
+  // Mantemos o toast (Sua versão)
+  const { toast } = useToast(); 
+  // Ignoramos o login() do useAuth (Versão dele) por enquanto, pois faremos manual
+  
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,60 +64,49 @@ const Login = () => {
     resolver: zodResolver(loginSchema),
   });
 
+  // ✅ RESOLUÇÃO DA LÓGICA (ONSUBMIT):
+  // Mantemos INTEGRALMENTE a sua versão (HEAD), pois ela tem a conexão real com a API.
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     setError(null);
 
-    // 🔹 Mapeando os dados para o formato que o Django/Knox espera
-    // O LoginSerializer padrão espera 'username' e 'password'.
-    // Como usamos o email como username no cadastro, enviamos o email no campo username.
     const apiPayload = {
         username: data.email,
         password: data.senha
     };
 
     try {
-      // 🎯 URL do Endpoint de Login
       const apiUrl = "http://127.0.0.1:8000/api/accounts/login/";
       
       const response = await apiPost(apiUrl, apiPayload);
 
-      // ✅ Sucesso!
-      // O backend Knox retorna algo como: { "expiry": "...", "token": "..." } ou { "user": {..}, "token": "..." }
-      // Precisamos salvar esse token para usar nas próximas requisições privadas.
-      
       if (response.token) {
           localStorage.setItem('token', response.token);
-          localStorage.setItem('user', JSON.stringify(response.user || {})); // Salva dados básicos do user se vierem
+          localStorage.setItem('user', JSON.stringify(response.user || {})); 
       }
 
       if (toast) {
         toast({
             title: "Login realizado!",
             description: "Bem-vindo de volta.",
-            variant: "default", // ou 'default' se 'success' não existir no seu componente
+            variant: "default", 
         });
       }
       
-      // Redirecionar para a Home (Dashboard)
-      // Pode ser "/" ou "/dashboard" dependendo da sua rota
       setTimeout(() => navigate("/"), 1000);
 
     } catch (err: any) {
       let msg = "E-mail ou senha incorretos.";
-      
-      // Tenta ler mensagens específicas do backend (ex: "Credenciais inválidas")
       try {
           const json = JSON.parse(err.message);
           if (json.non_field_errors) {
-              msg = json.non_field_errors[0]; // Erro comum do DRF para login
+              msg = json.non_field_errors[0];
           } else if (json.detail) {
               msg = json.detail;
           }
       } catch {
-          // Mantém a mensagem padrão
+          // msg padrão
       }
-      
       setError(msg);
     } finally {
       setIsLoading(false);
@@ -218,7 +216,6 @@ const Login = () => {
                   </button>
                   <div className="text-sm text-muted-foreground">
                     Não tem uma conta?{" "}
-                    {/* Aqui assumo que você tem uma página de seleção ou vai direto pra cliente */}
                     <button 
                       type="button"
                       onClick={() => navigate("/register")} 
