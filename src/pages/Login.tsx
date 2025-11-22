@@ -11,6 +11,7 @@ import { Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { useAuth } from "@/hooks/useAuth";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -21,6 +22,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,19 +40,10 @@ const Login = () => {
     setError(null);
 
     try {
-      // Simular API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Simular erro de login ocasional
-      if (Math.random() > 0.7) {
-        setError("E-mail ou senha incorretos. Tente novamente.");
-        return;
-      }
-      
-      // Sucesso - redirecionar para dashboard (que ainda não existe)
+      await login(data.email, data.senha);
       navigate("/");
     } catch (error) {
-      setError("Erro interno. Tente novamente em alguns minutos.");
+      setError("E-mail ou senha incorretos. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
