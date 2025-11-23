@@ -1,105 +1,126 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import { 
-  MapPin, 
-  Star, 
-  Clock, 
-  MessageCircle, 
-  Calendar,
-  CheckCircle,
-  Award,
-  Phone,
-  Mail
+  MapPin, Star, Clock, MessageCircle, Calendar, CheckCircle, Award, Phone, Mail, ArrowLeft, Loader2, Briefcase 
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 
-// Mock data para o prestador específico
-const mockPrestadorDetails: Record<string, any> = {
-  "1": {
-    id: 1,
-    nome: "Carlos Silva",
-    foto: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop&crop=face",
-    servicoPrincipal: "Eletricista Residencial",
-    avaliacao: 4.8,
-    numAvaliacoes: 127,
-    localizacao: "São Paulo - SP",
-    telefone: "(11) 99999-9999",
-    email: "carlos@email.com",
-    descricao: "Eletricista com mais de 10 anos de experiência em instalações residenciais e comerciais. Especialista em sistemas elétricos modernos, automação residencial e energia solar. Trabalho sempre com materiais de primeira qualidade e ofereço garantia em todos os serviços.",
-    servicos: [
-      { nome: "Instalação Elétrica Completa", preco: "R$ 120/hora", descricao: "Instalação completa de sistemas elétricos" },
-      { nome: "Manutenção Preventiva", preco: "R$ 80/hora", descricao: "Revisão e manutenção de instalações" },
-      { nome: "Reparo de Emergência", preco: "R$ 150/hora", descricao: "Atendimento de emergência 24h" },
-      { nome: "Automação Residencial", preco: "A combinar", descricao: "Sistemas inteligentes para casa" }
-    ],
-    avaliacoes: [
-      {
-        id: 1,
-        cliente: "Maria Santos",
-        avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=50&h=50&fit=crop&crop=face",
-        nota: 5,
-        comentario: "Excelente profissional! Muito pontual e organizou. Resolveu meu problema elétrico rapidamente.",
-        data: "2024-01-15"
-      },
-      {
-        id: 2,
-        cliente: "João Oliveira",
-        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50&h=50&fit=crop&crop=face",
-        nota: 5,
-        comentario: "Trabalho impecável! Instalou toda a parte elétrica da minha reforma com qualidade e no prazo.",
-        data: "2024-01-10"
-      },
-      {
-        id: 3,
-        cliente: "Ana Costa",
-        avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=50&h=50&fit=crop&crop=face",
-        nota: 4,
-        comentario: "Bom atendimento e preço justo. Recomendo!",
-        data: "2024-01-05"
-      }
-    ],
-    disponibilidade: [
-      { dia: "Segunda", horarios: ["08:00-12:00", "14:00-18:00"] },
-      { dia: "Terça", horarios: ["08:00-12:00", "14:00-18:00"] },
-      { dia: "Quarta", horarios: ["08:00-12:00"] },
-      { dia: "Quinta", horarios: ["08:00-12:00", "14:00-18:00"] },
-      { dia: "Sexta", horarios: ["08:00-12:00", "14:00-18:00"] },
-      { dia: "Sábado", horarios: ["08:00-12:00"] },
-      { dia: "Domingo", horarios: [] }
-    ],
-    certificacoes: ["Certificado NR-10", "Curso de Automação Residencial", "5+ anos de experiência"],
-    areaAtuacao: "Atende toda a Grande São Paulo"
-  }
+// --- COMPONENTES UI MOCKADOS (Para garantir que funcione aqui e no seu VS Code) ---
+// Se preferir, pode substituir pelos seus imports: import { Button } from "@/components/ui/button"; etc.
+
+const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'default' | 'outline' | 'ghost', size?: 'default' | 'lg' | 'sm' }> = ({ children, className = "", variant = 'default', size = 'default', ...props }) => {
+    const base = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50";
+    const variants = {
+        default: "bg-blue-600 text-white hover:bg-blue-700 shadow-sm",
+        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        ghost: "hover:bg-accent hover:text-accent-foreground"
+    };
+    const sizes = {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-12 px-8 text-lg"
+    };
+    return <button className={`${base} ${variants[variant]} ${sizes[size]} ${className}`} {...props}>{children}</button>;
 };
+
+const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => (
+    <div className={`rounded-xl border bg-card text-card-foreground shadow-sm ${className}`}>{children}</div>
+);
+const CardHeader = ({ children }: { children: React.ReactNode }) => <div className="flex flex-col space-y-1.5 p-6">{children}</div>;
+const CardTitle = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => <h3 className={`font-semibold leading-none tracking-tight ${className}`}>{children}</h3>;
+const CardContent = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => <div className={`p-6 pt-0 ${className}`}>{children}</div>;
+
+const Avatar: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => (
+    <div className={`relative flex shrink-0 overflow-hidden rounded-full ${className}`}>{children}</div>
+);
+const AvatarImage: React.FC<{ src?: string; alt?: string; className?: string }> = ({ src, alt, className = "" }) => (
+    src ? <img src={src} alt={alt} className={`aspect-square h-full w-full ${className}`} /> : null
+);
+const AvatarFallback: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => (
+    <div className={`flex h-full w-full items-center justify-center rounded-full bg-muted ${className}`}>{children}</div>
+);
+const Separator = ({ className = "" }) => <div className={`shrink-0 bg-border h-[1px] w-full ${className}`} />;
+const Badge: React.FC<{ children: React.ReactNode; variant?: 'default' | 'secondary'; className?: string }> = ({ children, className = "", variant = 'default' }) => (
+    <div className={`inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${variant === 'secondary' ? 'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80' : 'border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80'} ${className}`}>{children}</div>
+);
+
+const Header = () => (
+    <header className="sticky top-0 z-40 w-full border-b bg-white/95 backdrop-blur">
+        <div className="container flex h-14 items-center px-4 mx-auto"><h1 className="text-xl font-bold text-blue-600">FAZ PRA MIM</h1></div>
+    </header>
+);
+const Footer = () => (
+    <footer className="border-t mt-12 py-4"><div className="container mx-auto px-4 text-center text-xs text-gray-500">&copy; 2025 FAZ PRA MIM.</div></footer>
+);
+
+// --- INTERFACES DA API ---
+
+interface PortfolioPhoto {
+  id: number;
+  photo: string;
+  title: string;
+  description: string;
+}
+
+interface Review {
+  id: number;
+  client_rating: number;
+  client_comment: string;
+  client_name: string;
+  client_reviewed_at: string;
+  client_photo: string | null;
+}
+
+interface ProviderDetail {
+  id: number;
+  full_name: string;
+  technical_qualification: string;
+  service_address: string;
+  profile_photo: string | null;
+  email: string;
+  professional_email?: string;
+  average_rating: number;
+  total_reviews: number;
+  portfolio_photos: PortfolioPhoto[];
+  reviews: Review[];
+}
 
 const PrestadorDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  
-  const prestador = mockPrestadorDetails[id as keyof typeof mockPrestadorDetails];
+  const [provider, setProvider] = useState<ProviderDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!prestador) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-16 text-center">
-          <h1 className="text-2xl font-bold mb-4">Prestador não encontrado</h1>
-          <Button onClick={() => navigate("/search")} className="bg-primary hover:bg-primary-hover">
-            Voltar à pesquisa
-          </Button>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
+  // 🎯 Fetch dos dados reais
+  useEffect(() => {
+    const fetchDetails = async () => {
+      if (!id) return;
+      setLoading(true);
+      try {
+        const res = await fetch(`http://127.0.0.1:8000/api/accounts/providers/${id}/`);
+        
+        if (!res.ok) {
+            if (res.status === 404) throw new Error("Prestador não encontrado.");
+            throw new Error("Erro ao carregar detalhes.");
+        }
+        
+        const data = await res.json();
+        setProvider(data);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message || "Erro de conexão.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDetails();
+  }, [id]);
+
+  const getPhotoUrl = (path: string | null) => {
+    if (!path) return undefined;
+    if (path.startsWith("http")) return path;
+    return `http://127.0.0.1:8000${path}`;
+  };
 
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, i) => (
@@ -112,73 +133,114 @@ const PrestadorDetails = () => {
     ));
   };
 
-  const handleSolicitarServico = () => {
-    navigate(`/solicitar-servico/${id}`);
-  };
+  // Dados Mockados para preencher o layout onde a API ainda não fornece dados
+  const mockAvailability = [
+      { dia: "Segunda", horarios: ["08:00-18:00"] },
+      { dia: "Terça", horarios: ["08:00-18:00"] },
+      { dia: "Quarta", horarios: ["08:00-18:00"] },
+      { dia: "Quinta", horarios: ["08:00-18:00"] },
+      { dia: "Sexta", horarios: ["08:00-18:00"] },
+      { dia: "Sábado", horarios: ["09:00-13:00"] },
+      { dia: "Domingo", horarios: [] }
+  ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+         <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error || !provider) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-16 text-center">
+          <h1 className="text-2xl font-bold mb-4">{error || "Prestador não encontrado"}</h1>
+          <Button onClick={() => navigate("/search")} className="bg-primary hover:bg-primary-hover">
+            Voltar à pesquisa
+          </Button>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background font-sans">
       <Header />
       
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
+          {/* Botão Voltar */}
+          <Button variant="ghost" className="mb-6 pl-0 hover:bg-transparent hover:text-primary" onClick={() => navigate(-1)}>
+            <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
+          </Button>
+
           {/* Header do Prestador */}
-          <Card className="surface-card mb-8">
+          <Card className="surface-card mb-8 bg-white">
             <CardContent className="p-8">
               <div className="flex flex-col md:flex-row gap-8">
+                {/* Foto */}
                 <div className="flex-shrink-0">
-                  <Avatar className="w-32 h-32 mx-auto md:mx-0">
-                    <AvatarImage src={prestador.foto} alt={prestador.nome} />
-                    <AvatarFallback className="text-2xl">
-                      {prestador.nome.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
+                  <Avatar className="w-32 h-32 mx-auto md:mx-0 border-4 border-white shadow-lg">
+                    <AvatarImage src={getPhotoUrl(provider.profile_photo) || undefined} alt={provider.full_name} className="object-cover"/>
+                    <AvatarFallback className="text-2xl bg-gray-100">{provider.full_name[0]}</AvatarFallback>
                   </Avatar>
                 </div>
                 
+                {/* Informações Principais */}
                 <div className="flex-1 text-center md:text-left">
                   <h1 className="text-3xl font-bold text-foreground mb-2">
-                    {prestador.nome}
+                    {provider.full_name}
                   </h1>
-                  <p className="text-xl text-primary font-semibold mb-4">
-                    {prestador.servicoPrincipal}
+                  <p className="text-xl text-blue-600 font-semibold mb-4 flex items-center justify-center md:justify-start gap-2">
+                    <Briefcase className="w-5 h-5" />
+                    {provider.technical_qualification.split('\n')[0].substring(0, 40)}...
                   </p>
                   
                   <div className="flex items-center justify-center md:justify-start space-x-4 mb-4">
                     <div className="flex items-center space-x-1">
-                      {renderStars(prestador.avaliacao)}
-                      <span className="font-semibold ml-2">{prestador.avaliacao}</span>
-                      <span className="text-muted-foreground">
-                        ({prestador.numAvaliacoes} avaliações)
+                      {renderStars(provider.average_rating)}
+                      <span className="font-bold ml-2 text-lg">{provider.average_rating.toFixed(1)}</span>
+                      <span className="text-muted-foreground text-sm">
+                        ({provider.total_reviews} avaliações)
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row gap-4 items-center justify-center md:justify-start mb-6">
-                    <div className="flex items-center text-muted-foreground">
-                      <MapPin className="w-4 h-4 mr-2" />
-                      {prestador.localizacao}
+                  <div className="flex flex-col sm:flex-row gap-4 items-center justify-center md:justify-start mb-6 text-gray-600">
+                    <div className="flex items-center">
+                      <MapPin className="w-4 h-4 mr-2 text-red-500" />
+                      {provider.service_address}
                     </div>
-                    <div className="flex items-center text-muted-foreground">
-                      <Phone className="w-4 h-4 mr-2" />
-                      {prestador.telefone}
+                    {/* Telefone e Email ainda não estão públicos no serializer padrão por privacidade, 
+                        mas se estiverem, você pode descomentar:
+                    <div className="flex items-center">
+                      <Mail className="w-4 h-4 mr-2" />
+                      {provider.professional_email || provider.email}
                     </div>
+                    */}
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                     <Button 
                       size="lg" 
-                      onClick={handleSolicitarServico}
-                      className="bg-accent hover:bg-accent-hover"
+                      onClick={() => navigate(`/solicitar/${provider.id}`)}
+                      className="bg-blue-600 hover:bg-blue-700 shadow-md"
                     >
                       Solicitar Serviço
                     </Button>
                     <Button 
                       size="lg" 
                       variant="outline"
-                      className="btn-outline-brand"
+                      className="border-blue-200 text-blue-600 hover:bg-blue-50"
+                      // Lógica de chat futura:
+                      // onClick={() => navigate(`/chat/${provider.id}`)} 
                     >
                       <MessageCircle className="w-4 h-4 mr-2" />
-                      Iniciar Chat
+                      Dúvidas?
                     </Button>
                   </div>
                 </div>
@@ -193,156 +255,129 @@ const PrestadorDetails = () => {
               <Card className="surface-card">
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <Award className="w-5 h-5 mr-2 text-accent" />
+                    <Award className="w-5 h-5 mr-2 text-blue-500" />
                     Sobre o Profissional
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {prestador.descricao}
+                  <p className="text-gray-600 leading-relaxed whitespace-pre-line">
+                    {provider.technical_qualification || "O profissional não forneceu uma descrição detalhada."}
                   </p>
                 </CardContent>
               </Card>
 
-              {/* Serviços */}
+              {/* Portfólio (INTEGRAÇÃO NOVA) */}
               <Card className="surface-card">
                 <CardHeader>
-                  <CardTitle>Serviços Oferecidos</CardTitle>
+                  <CardTitle className="flex items-center">
+                     <CheckCircle className="w-5 h-5 mr-2 text-green-500" />
+                     Portfólio e Trabalhos
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid gap-4">
-                    {prestador.servicos.map((servico, index) => (
-                      <div key={index} className="flex justify-between items-start p-4 border border-border rounded-lg">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-foreground mb-1">
-                            {servico.nome}
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            {servico.descricao}
-                          </p>
-                        </div>
-                        <div className="text-right ml-4">
-                          <span className="font-semibold text-accent">
-                            {servico.preco}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  {provider.portfolio_photos.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {provider.portfolio_photos.map(photo => (
+                            <div key={photo.id} className="group relative aspect-square bg-gray-100 rounded-lg overflow-hidden border">
+                                <img 
+                                    src={getPhotoUrl(photo.photo)} 
+                                    alt={photo.title} 
+                                    className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+                                />
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity truncate">
+                                    {photo.title || "Trabalho realizado"}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 italic">Nenhuma foto de portfólio disponível.</p>
+                  )}
                 </CardContent>
               </Card>
 
-              {/* Avaliações */}
+              {/* Avaliações (INTEGRAÇÃO NOVA) */}
               <Card className="surface-card">
                 <CardHeader>
-                  <CardTitle>Avaliações dos Clientes</CardTitle>
+                  <CardTitle>Avaliações dos Clientes ({provider.total_reviews})</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {prestador.avaliacoes.length > 0 ? (
-                    <div className="space-y-6">
-                      {prestador.avaliacoes.map((avaliacao) => (
+                  <div className="space-y-6">
+                    {provider.reviews.length > 0 ? (
+                        provider.reviews.map((avaliacao) => (
                         <div key={avaliacao.id}>
-                          <div className="flex items-start space-x-4">
-                            <Avatar className="w-10 h-10">
-                              <AvatarImage src={avaliacao.avatar} alt={avaliacao.cliente} />
-                              <AvatarFallback>
-                                {avaliacao.cliente.split(' ').map(n => n[0]).join('')}
-                              </AvatarFallback>
+                            <div className="flex items-start space-x-4">
+                            <Avatar className="w-10 h-10 bg-gray-100">
+                                <AvatarFallback className="text-gray-600">
+                                {avaliacao.client_name ? avaliacao.client_name[0].toUpperCase() : 'C'}
+                                </AvatarFallback>
                             </Avatar>
                             <div className="flex-1">
-                              <div className="flex items-center space-x-2 mb-2">
-                                <span className="font-semibold">{avaliacao.cliente}</span>
-                                <div className="flex items-center space-x-1">
-                                  {renderStars(avaliacao.nota)}
+                                <div className="flex items-center space-x-2 mb-1">
+                                <span className="font-semibold text-gray-900">{avaliacao.client_name || "Cliente"}</span>
+                                <div className="flex items-center text-yellow-400">
+                                    {renderStars(avaliacao.client_rating)}
                                 </div>
-                                <span className="text-sm text-muted-foreground">
-                                  {new Date(avaliacao.data).toLocaleDateString('pt-BR')}
+                                <span className="text-sm text-gray-400">
+                                    {new Date(avaliacao.client_reviewed_at).toLocaleDateString('pt-BR')}
                                 </span>
-                              </div>
-                              <p className="text-muted-foreground">
-                                {avaliacao.comentario}
-                              </p>
+                                </div>
+                                <p className="text-gray-600 italic">
+                                "{avaliacao.client_comment}"
+                                </p>
+                                {avaliacao.client_photo && (
+                                    <img 
+                                        src={getPhotoUrl(avaliacao.client_photo)} 
+                                        alt="Foto da avaliação" 
+                                        className="mt-3 w-20 h-20 object-cover rounded-md border border-gray-200"
+                                    />
+                                )}
                             </div>
-                          </div>
-                          {avaliacao.id !== prestador.avaliacoes[prestador.avaliacoes.length - 1].id && (
+                            </div>
+                            {avaliacao.id !== provider.reviews[provider.reviews.length - 1].id && (
                             <Separator className="mt-6" />
-                          )}
+                            )}
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-center text-muted-foreground py-8">
-                      Sem avaliações até o momento
-                    </p>
-                  )}
+                        ))
+                    ) : (
+                        <p className="text-gray-500 text-center py-4">Este prestador ainda não possui avaliações.</p>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Sidebar */}
+            {/* Sidebar (Disponibilidade Mockada para manter layout) */}
             <div className="space-y-6">
-              {/* Disponibilidade */}
-              <Card className="surface-card">
+              <Card className="surface-card sticky top-24">
                 <CardHeader>
-                  <CardTitle className="flex items-center">
+                  <CardTitle className="flex items-center text-lg">
                     <Calendar className="w-5 h-5 mr-2 text-primary" />
-                    Disponibilidade
+                    Disponibilidade Típica
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {prestador.disponibilidade.map((dia, index) => (
-                      <div key={index} className="flex justify-between items-center">
-                        <span className="font-medium">{dia.dia}</span>
+                    {mockAvailability.map((dia, index) => (
+                      <div key={index} className="flex justify-between items-center text-sm">
+                        <span className="font-medium text-gray-700">{dia.dia}</span>
                         <div className="text-right">
                           {dia.horarios.length > 0 ? (
-                            <div className="text-sm text-muted-foreground">
-                              {dia.horarios.map((horario, i) => (
-                                <div key={i}>{horario}</div>
-                              ))}
-                            </div>
+                            <span className="text-gray-600">{dia.horarios[0]}</span>
                           ) : (
-                            <span className="text-sm text-muted-foreground">Indisponível</span>
+                            <span className="text-red-400">Indisponível</span>
                           )}
                         </div>
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Certificações */}
-              <Card className="surface-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <CheckCircle className="w-5 h-5 mr-2 text-accent" />
-                    Qualificações
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {prestador.certificacoes.map((cert, index) => (
-                      <div key={index} className="flex items-center">
-                        <CheckCircle className="w-4 h-4 text-accent mr-2 flex-shrink-0" />
-                        <span className="text-sm">{cert}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Área de Atuação */}
-              <Card className="surface-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <MapPin className="w-5 h-5 mr-2 text-primary" />
-                    Área de Atuação
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">
-                    {prestador.areaAtuacao}
-                  </p>
+                  
+                  <Button 
+                    className="w-full mt-6 bg-green-600 hover:bg-green-700" 
+                    onClick={() => navigate(`/solicitar/${provider.id}`)}
+                  >
+                    Agendar Agora
+                  </Button>
                 </CardContent>
               </Card>
             </div>
