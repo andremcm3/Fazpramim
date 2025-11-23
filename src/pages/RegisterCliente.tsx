@@ -181,7 +181,8 @@ const RegisterCliente: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [documento, setDocumento] = useState<File | null>(null); 
+    const [documento, setDocumento] = useState<File | null>(null);
+    const [fotoPerfil, setFotoPerfil] = useState<File | null>(null);
     const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string; } | null>(null);
 
     const { register, handleSubmit, formState: { errors }, watch } = useForm<ClienteFormData>({ resolver: zodResolver(clienteSchema) });
@@ -213,6 +214,21 @@ const RegisterCliente: React.FC = () => {
         }
     };
 
+    const handleFotoPerfilUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                toast({ title: "Arquivo muito grande", description: "Máximo 5MB", variant: "destructive" });
+                return;
+            }
+            if (!file.type.startsWith('image/')) {
+                toast({ title: "Formato inválido", description: "Apenas imagens são aceitas", variant: "destructive" });
+                return;
+            }
+            setFotoPerfil(file);
+        }
+    };
+
     const onSubmit = async (data: ClienteFormData) => {
         if (!documento) {
             setFeedback({ type: "error", message: "Por favor, envie um documento de identidade. Obrigatório." });
@@ -235,6 +251,9 @@ const RegisterCliente: React.FC = () => {
         formData.append('phone', data.telefone); 
         formData.append('address', data.endereco);
         formData.append('identity_document', documento);
+        if (fotoPerfil) {
+            formData.append('profile_picture', fotoPerfil);
+        }
 
         try {
             const apiUrl = "http://127.0.0.1:8000/api/accounts/register/client/"; 
@@ -242,7 +261,9 @@ const RegisterCliente: React.FC = () => {
 
             toast({ title: "Cadastro realizado!", description: (response as any)?.message || "Sucesso!", variant: "success" });
             setFeedback({ type: "success", message: "Cadastro realizado com sucesso! Redirecionando..." });
-            setTimeout(() => navigate("/login"), 3000); 
+            setTimeout(() => {
+                window.location.href = "/login";
+            }, 2000); 
         } catch (error) {
             let errorMessage = "Erro interno.";
             if (error instanceof Error) {
@@ -337,6 +358,19 @@ const RegisterCliente: React.FC = () => {
                                     <Label htmlFor="endereco">Endereço Completo *</Label>
                                     <Textarea id="endereco" {...register("endereco")} placeholder="Rua, número, bairro..." className={errors.endereco ? "border-red-500" : ""} rows={3} />
                                     {errors.endereco && <p className="text-sm text-red-500 mt-1">{errors.endereco.message}</p>}
+                                </div>
+                                <div>
+                                    <Label>Foto de Perfil</Label>
+                                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors bg-gray-50">
+                                        <input type="file" id="fotoPerfil" accept="image/*" onChange={handleFotoPerfilUpload} className="hidden" />
+                                        <label htmlFor="fotoPerfil" className="cursor-pointer block">
+                                            <div className="flex flex-col items-center space-y-2">
+                                                {fotoPerfil ? <CheckCircle className="w-8 h-8 text-green-500" /> : <Upload className="w-8 h-8 text-gray-400" />}
+                                                <p className={`text-sm font-medium ${fotoPerfil ? "text-green-600" : "text-gray-700"}`}>{fotoPerfil ? `Selecionado: ${fotoPerfil.name}` : "Clique para enviar sua foto"}</p>
+                                                <p className="text-xs text-gray-500">JPG ou PNG até 5MB</p>
+                                            </div>
+                                        </label>
+                                    </div>
                                 </div>
                                 <div>
                                     <Label>Documento de Identidade *</Label>

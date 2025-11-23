@@ -75,6 +75,7 @@ const RegisterPrestador = () => {
   // Estados para arquivos
   const [documento, setDocumento] = useState<File | null>(null);
   const [certificacoes, setCertificacoes] = useState<File | null>(null);
+  const [fotoPerfil, setFotoPerfil] = useState<File | null>(null);
   
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
@@ -134,6 +135,29 @@ const RegisterPrestador = () => {
     }
   };
 
+  const handleFotoPerfilUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Arquivo muito grande",
+          description: "O arquivo deve ter no máximo 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Formato inválido",
+          description: "Apenas imagens são aceitas",
+          variant: "destructive",
+        });
+        return;
+      }
+      setFotoPerfil(file);
+    }
+  };
+
   const onSubmit = async (data: PrestadorFormData) => {
     // Validação de arquivos obrigatórios
     if (!documento) {
@@ -179,6 +203,7 @@ const RegisterPrestador = () => {
     // Arquivos (Nomes devem bater com ProviderRegisterSerializer)
     if (documento) formData.append("identity_document", documento);
     if (certificacoes) formData.append("certifications", certificacoes);
+    if (fotoPerfil) formData.append("profile_picture", fotoPerfil);
 
     try {
       const apiUrl = "http://127.0.0.1:8000/api/accounts/register/provider/";
@@ -195,7 +220,9 @@ const RegisterPrestador = () => {
         message: 'Cadastro realizado com sucesso! Você será redirecionado para o login.'
       });
 
-      setTimeout(() => navigate("/login"), 3000);
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 2000);
 
     } catch (error: any) {
       let errorMessage = 'Erro interno. Tente novamente.';
@@ -388,6 +415,44 @@ const RegisterPrestador = () => {
                   {errors.qualificacaoTecnica && (
                     <p className="text-sm text-destructive">{errors.qualificacaoTecnica.message}</p>
                   )}
+                </div>
+
+                {/* Upload de Foto de Perfil */}
+                <div className="form-field">
+                  <Label>Foto de Perfil</Label>
+                  <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors">
+                    <input
+                      type="file"
+                      id="fotoPerfil"
+                      accept="image/*"
+                      onChange={handleFotoPerfilUpload}
+                      className="hidden"
+                    />
+                    <label htmlFor="fotoPerfil" className="cursor-pointer block">
+                      <div className="flex flex-col items-center space-y-2">
+                        {fotoPerfil ? (
+                          <CheckCircle className="w-8 h-8 text-green-500" />
+                        ) : (
+                          <Upload className="w-8 h-8 text-muted-foreground" />
+                        )}
+                        <p
+                          className={`text-sm font-medium ${
+                            fotoPerfil ? "text-green-600" : "text-muted-foreground"
+                          }`}
+                        >
+                          {fotoPerfil
+                            ? `Foto selecionada: ${fotoPerfil.name}`
+                            : "Clique para enviar sua foto"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          JPG ou PNG até 5MB
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Uma foto profissional aumenta sua credibilidade
+                  </p>
                 </div>
 
                 {/* Upload de Documento */}
