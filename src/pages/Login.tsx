@@ -84,13 +84,30 @@ const Login = () => {
       if (response.token) {
           localStorage.setItem('token', response.token);
           
+          // Log para debug - ver o que o backend retorna
+          console.log('Response do backend:', response);
+          console.log('Response.user:', response.user);
+          
+          // Detectar se é prestador baseado em múltiplos campos possíveis
+          const isPrestador = response.user?.is_provider || 
+                             response.user?.is_prestador || 
+                             response.user?.user_type === 'provider' ||
+                             response.user?.user_type === 'prestador' ||
+                             response.user?.tipo === 'prestador' ||
+                             response.user?.role === 'provider' ||
+                             response.user?.role === 'prestador';
+          
           // Formatando o usuário para o padrão esperado pelo useAuth
           const userData = {
             id: response.user?.id || '1',
             email: response.user?.email || data.email,
-            nome: response.user?.nome || response.user?.username || data.email.split('@')[0],
-            tipo: response.user?.tipo || 'cliente'
+            nome: response.user?.nome || response.user?.username || response.user?.full_name || data.email.split('@')[0],
+            tipo: isPrestador ? 'prestador' : 'cliente',
+            // Manter campos originais também para referência
+            ...(response.user || {})
           };
+          
+          console.log('userData formatado:', userData);
           
           localStorage.setItem('user', JSON.stringify(userData));
           

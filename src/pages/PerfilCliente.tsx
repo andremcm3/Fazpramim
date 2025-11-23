@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -49,6 +49,33 @@ const PerfilCliente = () => {
     },
   });
 
+  // Carregar dados do usuário do localStorage quando o componente montar
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser);
+        
+        // Atualizar foto de perfil se existir
+        if (userData.profile_picture) {
+          setFotoPerfil(userData.profile_picture);
+        }
+        
+        // Preencher o formulário com os dados do usuário
+        form.reset({
+          nome: userData.full_name || userData.nome || user?.nome || "",
+          email: userData.email || user?.email || "",
+          telefone: userData.phone || userData.telefone || "",
+          endereco: userData.address || userData.endereco || "",
+          cidade: userData.city || userData.cidade || "",
+          estado: userData.state || userData.estado || "",
+        });
+      } catch (error) {
+        console.error('Erro ao carregar dados do usuário:', error);
+      }
+    }
+  }, [user]);
+
   const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -72,7 +99,16 @@ const PerfilCliente = () => {
     if (storedUser) {
       const userData = JSON.parse(storedUser);
       userData.nome = data.nome;
+      userData.full_name = data.nome;
       userData.email = data.email;
+      userData.telefone = data.telefone;
+      userData.phone = data.telefone;
+      userData.endereco = data.endereco;
+      userData.address = data.endereco;
+      userData.cidade = data.cidade;
+      userData.city = data.cidade;
+      userData.estado = data.estado;
+      userData.state = data.estado;
       localStorage.setItem('user', JSON.stringify(userData));
     }
     

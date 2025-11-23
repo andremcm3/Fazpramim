@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -69,6 +69,34 @@ const PerfilPrestador = () => {
     },
   });
 
+  // Carregar dados do usuário do localStorage quando o componente montar
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser);
+        
+        // Atualizar foto de perfil se existir
+        if (userData.profile_picture) {
+          setFotoPerfil(userData.profile_picture);
+        }
+        
+        // Preencher o formulário com os dados do usuário
+        form.reset({
+          nome: userData.full_name || userData.nome || "",
+          email: userData.professional_email || userData.email || "",
+          telefone: userData.phone || userData.telefone || "",
+          descricao: userData.technical_qualification || userData.descricao || "",
+          cidade: userData.city || userData.cidade || "",
+          estado: userData.state || userData.estado || "",
+          disponibilidade: userData.availability || userData.disponibilidade || "",
+        });
+      } catch (error) {
+        console.error('Erro ao carregar dados do usuário:', error);
+      }
+    }
+  }, []);
+
   const formServico = useForm<ServicoFormData>({
     resolver: zodResolver(servicoSchema),
     defaultValues: {
@@ -95,6 +123,28 @@ const PerfilPrestador = () => {
 
   const onSubmitPerfil = (data: PerfilFormData) => {
     console.log("Perfil atualizado:", data);
+    
+    // Atualizar dados do usuário no localStorage
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const userData = JSON.parse(storedUser);
+      userData.nome = data.nome;
+      userData.full_name = data.nome;
+      userData.email = data.email;
+      userData.professional_email = data.email;
+      userData.telefone = data.telefone;
+      userData.phone = data.telefone;
+      userData.descricao = data.descricao;
+      userData.technical_qualification = data.descricao;
+      userData.cidade = data.cidade;
+      userData.city = data.cidade;
+      userData.estado = data.estado;
+      userData.state = data.estado;
+      userData.disponibilidade = data.disponibilidade;
+      userData.availability = data.disponibilidade;
+      localStorage.setItem('user', JSON.stringify(userData));
+    }
+    
     toast({
       title: "Perfil salvo!",
       description: "Suas informações foram atualizadas com sucesso.",

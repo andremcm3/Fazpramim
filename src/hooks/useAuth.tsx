@@ -23,10 +23,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Carregar usuário do localStorage ao iniciar
     const storedUser = localStorage.getItem('user');
     const storedToken = localStorage.getItem('token');
-    
+
     if (storedUser && storedToken) {
       try {
-        setUser(JSON.parse(storedUser));
+        const raw = JSON.parse(storedUser);
+        
+        console.log('useAuth - raw do localStorage:', raw);
+
+        // Detecta se é prestador por vários campos possíveis
+        const isPrestador = raw.tipo === 'prestador' || 
+                           raw.is_provider === true || 
+                           raw.is_prestador === true ||
+                           raw.user_type === 'provider' ||
+                           raw.user_type === 'prestador' ||
+                           raw.role === 'provider' ||
+                           raw.role === 'prestador';
+
+        // Garante que o objeto user usado no app tenha sempre o campo "tipo"
+        const normalizedUser: User = {
+          id: raw.id?.toString() || '1',
+          email: raw.email || '',
+          nome: raw.nome || raw.username || raw.full_name || (raw.email ? String(raw.email).split('@')[0] : ''),
+          tipo: isPrestador ? 'prestador' : 'cliente',
+        };
+
+        console.log('useAuth - normalizedUser:', normalizedUser);
+        console.log('useAuth - tipo final:', normalizedUser.tipo);
+
+        setUser(normalizedUser);
       } catch (error) {
         console.error('Erro ao carregar usuário do localStorage:', error);
         localStorage.removeItem('user');
@@ -44,7 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       id: '1',
       email,
       nome: email.split('@')[0],
-      tipo: 'cliente', // Pode ser determinado pelo backend
+      tipo: 'cliente', // fallback apenas para cenário de mock
     };
 
     setUser(mockUser);
