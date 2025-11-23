@@ -1,102 +1,94 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search as SearchIcon, MapPin, Star, Filter, SlidersHorizontal } from "lucide-react";
+import { Search as SearchIcon, MapPin, Star, SlidersHorizontal, Loader2, Briefcase, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
-// Mock data para prestadores
-const mockPrestadores = [
-  {
-    id: 1,
-    nome: "Carlos Silva",
-    foto: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-    servicoPrincipal: "Eletricista Residencial",
-    avaliacao: 4.8,
-    numAvaliacoes: 127,
-    preco: "R$ 80-120/hora",
-    localizacao: "São Paulo - SP",
-    servicos: ["Instalação Elétrica", "Manutenção", "Reparo"],
-    disponivel: true
-  },
-  {
-    id: 2,
-    nome: "Ana Costa",
-    foto: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
-    servicoPrincipal: "Limpeza Doméstica",
-    avaliacao: 4.9,
-    numAvaliacoes: 203,
-    preco: "R$ 25-35/hora",
-    localizacao: "Rio de Janeiro - RJ",
-    servicos: ["Limpeza Residencial", "Organização", "Passadoria"],
-    disponivel: true
-  },
-  {
-    id: 3,
-    nome: "Pedro Oliveira",
-    foto: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-    servicoPrincipal: "Encanador",
-    avaliacao: 4.7,
-    numAvaliacoes: 89,
-    preco: "R$ 70-100/hora",
-    localizacao: "Belo Horizonte - MG",
-    servicos: ["Instalação Hidráulica", "Desentupimento", "Vazamentos"],
-    disponivel: false
-  },
-  {
-    id: 4,
-    nome: "Mariana Santos",
-    foto: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
-    servicoPrincipal: "Personal Trainer",
-    avaliacao: 5.0,
-    numAvaliacoes: 45,
-    preco: "R$ 80-150/sessão",
-    localizacao: "São Paulo - SP",
-    servicos: ["Treino Funcional", "Musculação", "Pilates"],
-    disponivel: true
-  },
-  {
-    id: 5,
-    nome: "Roberto Ferreira",
-    foto: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face",
-    servicoPrincipal: "Pintor Residencial",
-    avaliacao: 4.6,
-    numAvaliacoes: 156,
-    preco: "R$ 40-60/m²",
-    localizacao: "Curitiba - PR",
-    servicos: ["Pintura Interna", "Pintura Externa", "Textura"],
-    disponivel: true
-  }
-];
+// 🔹 Interface Real (Baseada no seu ProviderListSerializer)
+interface Provider {
+  id: number;
+  full_name: string;
+  technical_qualification: string;
+  service_address: string;
+  profile_photo: string | null;
+  email: string;
+  // Campos mockados (ainda não vêm do backend, mas mantemos para o layout não quebrar)
+  avaliacao?: number;
+  numAvaliacoes?: number;
+  preco?: string;
+  disponivel?: boolean;
+}
 
 const Search = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredPrestadores, setFilteredPrestadores] = useState(mockPrestadores);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  const handleSearch = () => {
-    if (searchTerm.trim() === "") {
-      setFilteredPrestadores(mockPrestadores);
-      return;
+  // 🎯 Função para buscar prestadores na API Real
+  const fetchProviders = async (term = "") => {
+    setLoading(true);
+    setError(null);
+    try {
+      // URL do Backend (O filtro ?search= é processado automaticamente pelo Django)
+      const url = `http://127.0.0.1:8000/api/accounts/providers/?search=${encodeURIComponent(term)}`;
+      
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao buscar prestadores.");
+      }
+
+      const data = await response.json();
+      // O DRF pode retornar paginado ({ results: [] }) ou lista direta [].
+      const results = Array.isArray(data) ? data : data.results || [];
+      setProviders(results);
+      
+    } catch (err) {
+      console.error(err);
+      setError("Não foi possível carregar os prestadores. Verifique se o servidor está rodando.");
+    } finally {
+      setLoading(false);
     }
-
-    const filtered = mockPrestadores.filter(prestador =>
-      prestador.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      prestador.servicoPrincipal.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      prestador.servicos.some(servico => 
-        servico.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    );
-
-    setFilteredPrestadores(filtered);
   };
 
-  const renderStars = (rating: number) => {
+  // Carrega dados ao abrir a página
+  useEffect(() => {
+    fetchProviders();
+  }, []);
+
+  // Handler de busca
+  const handleSearch = () => {
+    fetchProviders(searchTerm);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  // Helper para corrigir URL da imagem (adiciona domínio do Django se for relativo)
+  const getPhotoUrl = (path: string | null) => {
+    if (!path) return undefined;
+    if (path.startsWith("http")) return path;
+    return `http://127.0.0.1:8000${path}`;
+  };
+
+  // Helper para renderizar estrelas (Mock visual, já que o back ainda não manda a média)
+  const renderStars = (rating: number = 5) => {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
         key={i}
@@ -105,12 +97,6 @@ const Search = () => {
         }`}
       />
     ));
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
   };
 
   return (
@@ -132,7 +118,7 @@ const Search = () => {
             <div className="flex-1 relative">
               <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
-                placeholder="Busque por serviço ou nome do prestador"
+                placeholder="Busque por serviço (ex: Eletricista) ou nome"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyPress={handleKeyPress}
@@ -143,8 +129,9 @@ const Search = () => {
               onClick={handleSearch}
               size="lg"
               className="bg-primary hover:bg-primary-hover px-8"
+              disabled={loading}
             >
-              Pesquisar
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Pesquisar"}
             </Button>
           </div>
 
@@ -161,7 +148,7 @@ const Search = () => {
           </div>
         </div>
 
-        {/* Filter Panel (Optional - collapsible) */}
+        {/* Filter Panel (Visual apenas por enquanto) */}
         {showFilters && (
           <Card className="surface-card mb-8 max-w-4xl mx-auto">
             <CardContent className="p-6">
@@ -175,7 +162,6 @@ const Search = () => {
                   <select className="w-full p-2 border border-input rounded-lg bg-background">
                     <option value="">Qualquer avaliação</option>
                     <option value="4">4+ estrelas</option>
-                    <option value="4.5">4.5+ estrelas</option>
                   </select>
                 </div>
                 <div>
@@ -195,112 +181,122 @@ const Search = () => {
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold">
-              {filteredPrestadores.length > 0 
-                ? `${filteredPrestadores.length} profissionais encontrados`
-                : "Nenhum prestador encontrado"
+              {loading 
+                ? "Carregando..." 
+                : providers.length > 0 
+                  ? `${providers.length} profissionais encontrados` 
+                  : "Nenhum prestador encontrado"
               }
             </h2>
             
-            {filteredPrestadores.length > 0 && (
+            {providers.length > 0 && (
               <select className="p-2 border border-input rounded-lg bg-background text-sm">
                 <option value="relevance">Mais relevante</option>
                 <option value="rating">Melhor avaliação</option>
-                <option value="price_low">Menor preço</option>
-                <option value="distance">Mais próximo</option>
               </select>
             )}
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="text-center py-10 bg-red-50 rounded-lg border border-red-200 text-red-600 mb-6">
+              <p>{error}</p>
+              <Button variant="outline" className="mt-4 border-red-200 text-red-600 hover:bg-red-50" onClick={() => fetchProviders()}>Tentar Novamente</Button>
+            </div>
+          )}
+
           {/* Results Grid */}
-          {filteredPrestadores.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredPrestadores.map((prestador) => (
-                <Card 
-                  key={prestador.id} 
-                  className="surface-card hover:shadow-[var(--shadow-medium)] transition-all duration-300 cursor-pointer"
-                  onClick={() => navigate(`/prestador/${prestador.id}`)}
-                >
-                  <CardContent className="p-6">
-                    <div className="flex items-start space-x-4 mb-4">
-                      <Avatar className="w-16 h-16">
-                        <AvatarImage src={prestador.foto} alt={prestador.nome} />
-                        <AvatarFallback>{prestador.nome.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg text-foreground mb-1">
-                          {prestador.nome}
-                        </h3>
-                        <p className="text-primary font-medium mb-2">
-                          {prestador.servicoPrincipal}
-                        </p>
-                        <div className="flex items-center space-x-1 mb-2">
-                          {renderStars(prestador.avaliacao)}
-                          <span className="text-sm text-muted-foreground ml-2">
-                            {prestador.avaliacao} ({prestador.numAvaliacoes} avaliações)
-                          </span>
+          {!loading && !error && (
+            <>
+              {providers.length > 0 ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {providers.map((provider) => (
+                    <Card 
+                      key={provider.id} 
+                      className="surface-card hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col"
+                      onClick={() => navigate(`/prestador/${provider.id}`)}
+                    >
+                      <CardHeader className="flex flex-row items-center gap-4 pb-2">
+                        <Avatar className="w-16 h-16 border-2 border-white shadow-sm">
+                          <AvatarImage src={getPhotoUrl(provider.profile_photo) || undefined} alt={provider.full_name} className="object-cover" />
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                             {provider.full_name.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <CardTitle className="text-lg">{provider.full_name}</CardTitle>
+                          <div className="flex items-center space-x-1 mt-1">
+                            {/* Mock de estrelas (5.0 fixo até termos review no serializer) */}
+                            {renderStars(5)}
+                            <span className="text-sm text-muted-foreground ml-2">
+                              (Novo)
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        {prestador.localizacao}
-                      </div>
+                      </CardHeader>
                       
-                      <div className="flex flex-wrap gap-1">
-                        {prestador.servicos.slice(0, 2).map((servico, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {servico}
-                          </Badge>
-                        ))}
-                        {prestador.servicos.length > 2 && (
-                          <Badge variant="secondary" className="text-xs">
-                            +{prestador.servicos.length - 2}
-                          </Badge>
-                        )}
-                      </div>
-
-                      <div className="flex justify-between items-center pt-2">
-                        <span className="font-semibold text-accent">
-                          {prestador.preco}
-                        </span>
-                        <div className="flex items-center">
-                          <div className={`w-2 h-2 rounded-full mr-2 ${
-                            prestador.disponivel ? 'bg-green-500' : 'bg-red-500'
-                          }`} />
-                          <span className={`text-xs ${
-                            prestador.disponivel ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {prestador.disponivel ? 'Disponível' : 'Ocupado'}
-                          </span>
+                      <CardContent className="space-y-3 flex-grow">
+                        <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                            <Briefcase className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                            <span className="line-clamp-2">
+                                {provider.technical_qualification || "Serviços Gerais"}
+                            </span>
                         </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <div className="w-24 h-24 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-6">
-                <SearchIcon className="w-12 h-12 text-muted-foreground" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Nenhum prestador encontrado</h3>
-              <p className="text-muted-foreground mb-6">
-                Ajuste os filtros de pesquisa ou tente outros termos
-              </p>
-              <Button 
-                variant="outline"
-                onClick={() => {
-                  setSearchTerm("");
-                  setFilteredPrestadores(mockPrestadores);
-                }}
-                className="btn-outline-brand"
-              >
-                Limpar Pesquisa
-              </Button>
-            </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <MapPin className="w-4 h-4 text-red-500 shrink-0" />
+                            <span className="line-clamp-1">
+                                {provider.service_address || "Endereço não informado"}
+                            </span>
+                        </div>
+
+                        {/* Tags de Serviços (Mock visual baseado na qualificação) */}
+                        <div className="flex flex-wrap gap-1 pt-2">
+                          <Badge variant="secondary" className="text-xs">
+                            Profissional
+                          </Badge>
+                          {provider.technical_qualification && provider.technical_qualification.length > 20 && (
+                             <Badge variant="secondary" className="text-xs">Experiente</Badge>
+                          )}
+                        </div>
+                      </CardContent>
+
+                      <CardFooter className="border-t pt-4 mt-auto">
+                         <div className="flex justify-between items-center w-full">
+                            <span className="font-semibold text-accent text-sm">
+                                {/* Preço Mockado */}
+                                A combinar
+                            </span>
+                            <div className="flex items-center">
+                                <div className="w-2 h-2 rounded-full mr-2 bg-green-500" />
+                                <span className="text-xs text-green-600">Disponível</span>
+                            </div>
+                         </div>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16">
+                  <div className="w-24 h-24 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-6">
+                    <SearchIcon className="w-12 h-12 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">Nenhum prestador encontrado</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Tente usar termos diferentes na busca.
+                  </p>
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      setSearchTerm("");
+                      fetchProviders("");
+                    }}
+                    className="btn-outline-brand"
+                  >
+                    Limpar Pesquisa
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>
