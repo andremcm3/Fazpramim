@@ -92,30 +92,83 @@ const PerfilCliente = () => {
   };
 
   const onSubmitPerfil = (data: PerfilFormData) => {
-    console.log("Perfil atualizado:", data);
-    
-    // Atualizar dados do usuário no localStorage
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const userData = JSON.parse(storedUser);
-      userData.nome = data.nome;
-      userData.full_name = data.nome;
-      userData.email = data.email;
-      userData.telefone = data.telefone;
-      userData.phone = data.telefone;
-      userData.endereco = data.endereco;
-      userData.address = data.endereco;
-      userData.cidade = data.cidade;
-      userData.city = data.cidade;
-      userData.estado = data.estado;
-      userData.state = data.estado;
-      localStorage.setItem('user', JSON.stringify(userData));
-    }
-    
-    toast({
-      title: "Perfil salvo!",
-      description: "Suas informações foram atualizadas com sucesso.",
-    });
+    (async () => {
+      console.log("Perfil atualizado:", data);
+
+      // Atualizar dados do usuário no localStorage (mantendo comportamento atual)
+      const storedUser = localStorage.getItem('user');
+      let userData: any = null;
+      if (storedUser) {
+        try {
+          userData = JSON.parse(storedUser);
+          userData.nome = data.nome;
+          userData.full_name = data.nome;
+          userData.email = data.email;
+          userData.telefone = data.telefone;
+          userData.phone = data.telefone;
+          userData.endereco = data.endereco;
+          userData.address = data.endereco;
+          userData.cidade = data.cidade;
+          userData.city = data.cidade;
+          userData.estado = data.estado;
+          userData.state = data.estado;
+          localStorage.setItem('user', JSON.stringify(userData));
+        } catch (e) {
+          console.error('Erro ao atualizar localStorage:', e);
+        }
+      }
+
+      // Enviar atualização para o backend (se token/endpoint disponível)
+      try {
+        const token = localStorage.getItem('token');
+        const clientId = userData?.id || userData?.pk || userData?.user_id || (user && (user.id || user.pk));
+
+        if (clientId && token) {
+          const payload: any = {
+            full_name: data.nome,
+            email: data.email,
+            phone: data.telefone,
+            address: data.endereco,
+            city: data.cidade,
+            state: data.estado,
+          };
+
+          if (fotoPerfil && fotoPerfil.startsWith('data:')) {
+            payload.profile_picture = fotoPerfil;
+          }
+
+          const resp = await fetch(`http://127.0.0.1:8000/api/accounts/clients/${clientId}/`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Token ${token}`,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!resp.ok) {
+            const text = await resp.text().catch(() => '');
+            console.error('Erro ao salvar no backend:', resp.status, text);
+            toast({
+              title: 'Erro ao salvar',
+              description: 'Não foi possível salvar suas informações no servidor.',
+            });
+            return;
+          }
+        }
+
+        toast({
+          title: "Perfil salvo!",
+          description: "Suas informações foram atualizadas com sucesso.",
+        });
+      } catch (err) {
+        console.error('Erro na requisição de salvar perfil:', err);
+        toast({
+          title: 'Erro ao salvar',
+          description: 'Ocorreu um erro ao tentar salvar. Verifique sua conexão ou o backend.',
+        });
+      }
+    })();
   };
 
   return (

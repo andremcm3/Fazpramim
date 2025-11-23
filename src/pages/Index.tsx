@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, Users, Star, Shield, Clock, Search, Calendar } from "lucide-react";
@@ -10,6 +11,7 @@ import HomePrestador from "./HomePrestador";
 
 // Component to fetch and render provider's requests with simple accept action
 const ProviderRequestsPanel: React.FC<{ providerId?: string | null }> = ({ providerId }) => {
+  const { toast } = useToast();
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,28 +59,69 @@ const ProviderRequestsPanel: React.FC<{ providerId?: string | null }> = ({ provi
     return s === 'completed' || s === 'done' || s === 'concluido' || s === 'finished';
   }).length;
 
-  const acceptRequest = async (requestId: number) => {
-    // Try to update request status. Endpoint may vary; we attempt PATCH to a common endpoint.
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`http://127.0.0.1:8000/api/accounts/requests/${requestId}/`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Token ${token}` } : {}),
-        },
-        body: JSON.stringify({ status: 'in_progress' }),
-      });
-      if (!res.ok) {
-        const errBody = await res.text().catch(() => '');
-        throw new Error(errBody || 'Erro ao aceitar solicitação');
+  // Try patching common request endpoints; return response if ok
+  const patchRequestEndpoint = async (requestId: any, body: any) => {
+    const token = localStorage.getItem('token');
+    const endpoints = [
+      `http://127.0.0.1:8000/api/accounts/requests/${requestId}/`,
+      `http://127.0.0.1:8000/api/requests/${requestId}/`,
+      `http://127.0.0.1:8000/api/requests/${requestId}/update/`,
+    ];
+    for (const url of endpoints) {
+      try {
+        const res = await fetch(url, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Token ${token}` } : {}),
+          },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) return res;
+      } catch (err) {
+        console.warn('Tentativa falhou para', url, err);
       }
-      // Update locally
-      setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: 'in_progress' } : r));
-    } catch (err) {
-      console.error(err);
-      alert('Não foi possível aceitar a solicitação. Verifique o console.');
     }
+    throw new Error('Nenhum endpoint aceitou a atualização');
+  };
+
+  const updateRequestStatusLocal = (requestId: any, status: string) => {
+    setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status } : r));
+  };
+
+  const acceptRequest = async (requestId: any) => {
+    // Try common status values; fallback locally
+    const tryStatuses = ['in_progress', 'accepted', 'aceito'];
+    for (const s of tryStatuses) {
+      try {
+        await patchRequestEndpoint(requestId, { status: s });
+        updateRequestStatusLocal(requestId, s);
+        toast({ title: 'Solicitação aceita', description: 'Você aceitou a solicitação.' });
+        // refresh list
+        await fetchRequests();
+        return;
+      } catch (err) {
+        // continue trying other status values
+        console.warn('Falha ao tentar status', s, err);
+      }
+    }
+    toast({ title: 'Erro', description: 'Não foi possível aceitar a solicitação. Verifique o console.' });
+  };
+
+  const declineRequest = async (requestId: any) => {
+    const tryStatuses = ['declined', 'rejected', 'rejeitado'];
+    for (const s of tryStatuses) {
+      try {
+        await patchRequestEndpoint(requestId, { status: s });
+        updateRequestStatusLocal(requestId, s);
+        toast({ title: 'Solicitação recusada', description: 'Você recusou a solicitação.' });
+        await fetchRequests();
+        return;
+      } catch (err) {
+        console.warn('Falha ao tentar status', s, err);
+      }
+    }
+    toast({ title: 'Erro', description: 'Não foi possível recusar a solicitação. Verifique o console.' });
   };
 
   return (
@@ -115,7 +158,7 @@ const ProviderRequestsPanel: React.FC<{ providerId?: string | null }> = ({ provi
 
             <div className="space-y-3">
               {requests.map(req => (
-                <div key={req.id} className="p-3 border rounded-md flex items-start justify-between">
+                <div key={req.id} className="p-3 border rounded-md flex items-start justify-between" onClick={(e) => e.stopPropagation()}>
                   <div>
                     <p className="font-semibold">{req.client_name || req.requester_name || req.client_email || 'Cliente'}</p>
                     <p className="text-sm text-muted-foreground">{req.description || req.description_text || req.note}</p>
@@ -124,9 +167,12 @@ const ProviderRequestsPanel: React.FC<{ providerId?: string | null }> = ({ provi
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     {((req.status || '').toString().toLowerCase() === 'pending' || (req.status || '').toString().toLowerCase() === 'pendente') && (
-                      <button className="bg-primary text-white rounded px-3 py-1 text-sm" onClick={() => acceptRequest(req.id)}>Aceitar</button>
+                      <div className="flex gap-2">
+                        <button className="bg-primary text-white rounded px-3 py-1 text-sm" onClick={(e) => { e.stopPropagation(); acceptRequest(req.id); }}>Aceitar</button>
+                        <button className="bg-destructive text-white rounded px-3 py-1 text-sm" onClick={(e) => { e.stopPropagation(); declineRequest(req.id); }}>Recusar</button>
+                      </div>
                     )}
-                    <button className="text-sm text-muted-foreground" onClick={() => window.open(`/solicitacao/${req.id}`, '_self')}>Ver</button>
+                    <button className="text-sm text-muted-foreground" onClick={(e) => { e.stopPropagation(); window.open(`/solicitacao/${req.id}`, '_self'); }}>Ver</button>
                   </div>
                 </div>
               ))}
