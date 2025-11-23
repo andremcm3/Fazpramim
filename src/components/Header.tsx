@@ -38,17 +38,9 @@ const Header = () => {
           
           {isAuthenticated ? (
             <>
-              {user?.tipo === 'prestador' && (
-                <Button 
-                  variant="ghost" 
-                  onClick={() => navigate("/perfil-prestador")}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  Meu Perfil
-                </Button>
-              )}
               <Button 
                 variant="ghost" 
+                onClick={() => navigate(user?.tipo === 'prestador' ? "/perfil-prestador" : "/perfil-cliente")}
                 className="text-muted-foreground hover:text-foreground"
               >
                 <User className="w-4 h-4 mr-2" />

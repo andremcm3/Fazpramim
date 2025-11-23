@@ -16,8 +16,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 // Mantemos o hook que precisamos para notificações
 import { useToast } from "@/hooks/use-toast";
-// O hook useAuth do outro dev fica aqui, mas não vamos usar agora para não quebrar sua lógica
-// import { useAuth } from "@/hooks/useAuth"; 
+// Importando o useAuth para sincronizar o estado de autenticação
+import { useAuth } from "@/hooks/useAuth"; 
 
 // 🎯 MANTEMOS SUA FUNÇÃO DE INTEGRAÇÃO (HEAD)
 const apiPost = async (url: string, payload: any) => {
@@ -50,7 +50,8 @@ const Login = () => {
   // ✅ RESOLUÇÃO DOS HOOKS:
   // Mantemos o toast (Sua versão)
   const { toast } = useToast(); 
-  // Ignoramos o login() do useAuth (Versão dele) por enquanto, pois faremos manual
+  // Usando o useAuth para sincronizar o estado global de autenticação
+  const auth = useAuth();
   
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -82,7 +83,19 @@ const Login = () => {
 
       if (response.token) {
           localStorage.setItem('token', response.token);
-          localStorage.setItem('user', JSON.stringify(response.user || {})); 
+          
+          // Formatando o usuário para o padrão esperado pelo useAuth
+          const userData = {
+            id: response.user?.id || '1',
+            email: response.user?.email || data.email,
+            nome: response.user?.nome || response.user?.username || data.email.split('@')[0],
+            tipo: response.user?.tipo || 'cliente'
+          };
+          
+          localStorage.setItem('user', JSON.stringify(userData));
+          
+          // Força a atualização do contexto de autenticação
+          window.dispatchEvent(new Event('storage'));
       }
 
       if (toast) {
@@ -93,7 +106,11 @@ const Login = () => {
         });
       }
       
-      setTimeout(() => navigate("/"), 1000);
+      // Recarrega a página para garantir que o AuthProvider pegue o usuário do localStorage
+      setTimeout(() => {
+        navigate("/");
+        window.location.reload();
+      }, 1000);
 
     } catch (err: any) {
       let msg = "E-mail ou senha incorretos.";
