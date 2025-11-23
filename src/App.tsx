@@ -32,13 +32,23 @@ const App = () => (
             <Route path="/register/cliente" element={<RegisterCliente />} />
             <Route path="/register/prestador" element={<RegisterPrestador />} />
             <Route path="/login" element={<Login />} />
+            
             <Route path="/search" element={<Search />} />
             <Route path="/prestador/:id" element={<PrestadorDetails />} />
-            <Route path="/solicitar-servico/:id" element={<SolicitarServico />} />
+            
+            {/* 🚨 CORREÇÃO 1: Mudado de '/solicitar-servico/:id' para '/solicitar/:id' 
+                para bater com o link do botão no PrestadorDetails */}
+            <Route path="/solicitar/:id" element={<SolicitarServico />} />
+            
+            {/* 🚨 CORREÇÃO 2: Adicionada rota para visualizar a solicitação criada.
+                Por enquanto, apontamos para o Chat, que é o fluxo natural. */}
+            <Route path="/solicitacao/:id" element={<Chat />} />
+            
             <Route path="/chat/:id" element={<Chat />} />
+            
             <Route path="/perfil-prestador" element={<PerfilPrestador />} />
             <Route path="/perfil-cliente" element={<PerfilCliente />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
