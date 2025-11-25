@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -69,6 +69,19 @@ const PerfilPrestador = () => {
     },
   });
 
+  const formatPhone = (value: string) => {
+    if (!value) return "";
+    const digits = String(value).replace(/\D/g, '').slice(0, 11);
+    if (digits.length === 0) return "";
+    const ddd = digits.slice(0, 2);
+    const rest = digits.slice(2);
+    if (!rest) return `(${ddd}) `;
+    if (rest.length <= 4) return `(${ddd}) ${rest}`;
+    const prefix = rest.slice(0, rest.length - 4);
+    const last4 = rest.slice(-4);
+    return `(${ddd}) ${prefix}-${last4}`;
+  };
+
   // Carregar dados do usuário do localStorage quando o componente montar
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -85,7 +98,7 @@ const PerfilPrestador = () => {
         form.reset({
           nome: userData.full_name || userData.nome || "",
           email: userData.professional_email || userData.email || "",
-          telefone: userData.phone || userData.telefone || "",
+          telefone: formatPhone(userData.phone || userData.telefone || ""),
           descricao: userData.technical_qualification || userData.descricao || "",
           cidade: userData.city || userData.cidade || "",
           estado: userData.state || userData.estado || "",
@@ -315,15 +328,24 @@ const PerfilPrestador = () => {
                     <FormField
                       control={form.control}
                       name="telefone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Telefone</FormLabel>
-                          <FormControl>
-                            <Input placeholder="(00) 00000-0000" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Telefone</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="(00) 00000-0000"
+                                {...field}
+                                value={field.value || ''}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                  const formatted = formatPhone(e.target.value);
+                                  e.target.value = formatted;
+                                  field.onChange(formatted);
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                     />
 
                     <FormField

@@ -185,7 +185,7 @@ const RegisterCliente: React.FC = () => {
     const [fotoPerfil, setFotoPerfil] = useState<File | null>(null);
     const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string; } | null>(null);
 
-    const { register, handleSubmit, formState: { errors }, watch } = useForm<ClienteFormData>({ resolver: zodResolver(clienteSchema) });
+    const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm<ClienteFormData>({ resolver: zodResolver(clienteSchema) });
     const senha = watch("senha");
 
     const getPasswordStrength = (password: string) => {
@@ -286,6 +286,20 @@ const RegisterCliente: React.FC = () => {
         }
     };
 
+    // Formata telefone enquanto o usuário digita: (DD) 99999-9999 ou (DD) 9999-9999
+    const formatPhone = (value: string) => {
+        if (!value) return "";
+        const digits = String(value).replace(/\D/g, '').slice(0, 11); // limita a 11 dígitos (DDD + 9)
+        if (digits.length === 0) return "";
+        const ddd = digits.slice(0, 2);
+        const rest = digits.slice(2);
+        if (!rest) return `(${ddd}) `;
+        if (rest.length <= 4) return `(${ddd}) ${rest}`;
+        const prefix = rest.slice(0, rest.length - 4);
+        const last4 = rest.slice(-4);
+        return `(${ddd}) ${prefix}-${last4}`;
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
             <Header />
@@ -351,7 +365,24 @@ const RegisterCliente: React.FC = () => {
                                 </div>
                                 <div>
                                     <Label htmlFor="telefone">Telefone *</Label>
-                                    <Input id="telefone" {...register("telefone")} placeholder="(11) 99999-9999" className={errors.telefone ? "border-red-500" : ""} />
+                                    {(() => {
+                                        const phoneReg = register("telefone");
+                                        return (
+                                            <Input
+                                                id="telefone"
+                                                {...phoneReg}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                    const raw = e.target.value;
+                                                    const formatted = formatPhone(raw);
+                                                    e.target.value = formatted;
+                                                    if (phoneReg.onChange) phoneReg.onChange(e);
+                                                    setValue('telefone', formatted, { shouldValidate: true, shouldDirty: true });
+                                                }}
+                                                placeholder="(11) 99999-9999"
+                                                className={errors.telefone ? "border-red-500" : ""}
+                                            />
+                                        );
+                                    })()}
                                     {errors.telefone && <p className="text-sm text-red-500 mt-1">{errors.telefone.message}</p>}
                                 </div>
                                 <div>

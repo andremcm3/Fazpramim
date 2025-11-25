@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -84,6 +84,7 @@ const RegisterPrestador = () => {
     handleSubmit,
     formState: { errors },
     watch,
+    setValue,
   } = useForm<PrestadorFormData>({
     resolver: zodResolver(prestadorSchema),
   });
@@ -104,6 +105,20 @@ const RegisterPrestador = () => {
   };
 
   const passwordStrength = getPasswordStrength(senha || "");
+
+  // Formata telefone enquanto o usuário digita: (DD) 99999-9999 ou (DD) 9999-9999
+  const formatPhone = (value: string) => {
+    if (!value) return "";
+    const digits = String(value).replace(/\D/g, '').slice(0, 11);
+    if (digits.length === 0) return "";
+    const ddd = digits.slice(0, 2);
+    const rest = digits.slice(2);
+    if (!rest) return `(${ddd}) `;
+    if (rest.length <= 4) return `(${ddd}) ${rest}`;
+    const prefix = rest.slice(0, rest.length - 4);
+    const last4 = rest.slice(-4);
+    return `(${ddd}) ${prefix}-${last4}`;
+  };
 
   const handleDocumentUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -373,12 +388,24 @@ const RegisterPrestador = () => {
                 {/* Telefone */}
                 <div className="form-field">
                   <Label htmlFor="telefone">Telefone *</Label>
-                  <Input
-                    id="telefone"
-                    {...register("telefone")}
-                    placeholder="(11) 99999-9999"
-                    className={errors.telefone ? "border-destructive" : ""}
-                  />
+                  {(() => {
+                    const phoneReg = register("telefone");
+                    return (
+                      <Input
+                        id="telefone"
+                        {...phoneReg}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const raw = e.target.value;
+                          const formatted = formatPhone(raw);
+                          e.target.value = formatted;
+                          if (phoneReg.onChange) phoneReg.onChange(e);
+                          setValue('telefone', formatted, { shouldValidate: true, shouldDirty: true });
+                        }}
+                        placeholder="(11) 99999-9999"
+                        className={errors.telefone ? "border-destructive" : ""}
+                      />
+                    );
+                  })()}
                   {errors.telefone && (
                     <p className="text-sm text-destructive">{errors.telefone.message}</p>
                   )}

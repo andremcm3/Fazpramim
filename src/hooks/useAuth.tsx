@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext, ReactNode } from 'react
 
 interface User {
   id: string;
+  pk?: string;
   email: string;
   nome: string;
   tipo: 'cliente' | 'prestador';
@@ -39,11 +40,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                            raw.role === 'provider' ||
                            raw.role === 'prestador';
 
+        // Monta o nome preferindo campos mais completos (first/last/name/full_name),
+        // com fallback para `nome`, `username` ou local-part do e-mail.
+        const firstName = raw.first_name || raw.firstname || raw.firstName || '';
+        const lastName = raw.last_name || raw.lastname || raw.lastName || '';
+        const nameField = raw.name || raw.full_name || raw.fullName || raw.fullname || raw.full_name_translated || '';
+
+        const looksLikeEmail = (v: any) => typeof v === 'string' && v.includes('@');
+
+        const deriveName = (): string => {
+          const parts: string[] = [];
+          if (firstName) parts.push(firstName);
+          if (lastName) parts.push(lastName);
+          if (parts.length > 0) return parts.join(' ').trim();
+          // Prefer explicit full name fields from backend
+          if (nameField) return nameField;
+          // Only use raw.nome/raw.username if they don't look like an email
+          if (raw.nome && !looksLikeEmail(raw.nome)) return raw.nome;
+          if (raw.username && !looksLikeEmail(raw.username)) return raw.username;
+          if (raw.email) return String(raw.email).split('@')[0];
+          return '';
+        };
+
+        const capitalize = (s: string) => {
+          return s
+            .split(' ')
+            .filter(Boolean)
+            .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+            .join(' ');
+        };
+
         // Garante que o objeto user usado no app tenha sempre o campo "tipo"
         const normalizedUser: User = {
           id: raw.id?.toString() || '1',
           email: raw.email || '',
-          nome: raw.nome || raw.username || raw.full_name || (raw.email ? String(raw.email).split('@')[0] : ''),
+          nome: capitalize(deriveName()),
+          pk: raw.pk ? String(raw.pk) : undefined,
           tipo: isPrestador ? 'prestador' : 'cliente',
         };
 
@@ -64,10 +96,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Mock user - em produção isso viria do backend
+    const localPart = String(email).split('@')[0] || '';
+    const capitalize = (s: string) =>
+      s
+        .split(' ')
+        .filter(Boolean)
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+
     const mockUser: User = {
       id: '1',
       email,
-      nome: email.split('@')[0],
+      nome: capitalize(localPart),
       tipo: 'cliente', // fallback apenas para cenário de mock
     };
 
