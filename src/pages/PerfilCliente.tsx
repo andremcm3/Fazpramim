@@ -62,31 +62,63 @@ const PerfilCliente = () => {
     return `(${ddd}) ${prefix}-${last4}`;
   };
 
-  // Carregar dados do usuário do localStorage quando o componente montar
+  // Carregar dados do usuário do localStorage e do backend quando o componente montar
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        
-        // Atualizar foto de perfil se existir
-        if (userData.profile_picture) {
-          setFotoPerfil(userData.profile_picture);
+    const loadUserData = async () => {
+      const storedUser = localStorage.getItem('user');
+      let userData: any = null;
+      
+      if (storedUser) {
+        try {
+          userData = JSON.parse(storedUser);
+        } catch (error) {
+          console.error('Erro ao parsear userData do localStorage:', error);
         }
-        
-        // Preencher o formulário com os dados do usuário
-        form.reset({
-          nome: userData.full_name || userData.nome || user?.nome || "",
-          email: userData.email || user?.email || "",
-          telefone: formatPhone(userData.phone || userData.telefone || ""),
-          endereco: userData.address || userData.endereco || "",
-          cidade: userData.city || userData.cidade || "",
-          estado: userData.state || userData.estado || "",
-        });
-      } catch (error) {
-        console.error('Erro ao carregar dados do usuário:', error);
       }
-    }
+
+      // Tentar buscar dados atualizados do backend
+      try {
+        const token = localStorage.getItem('token');
+        const clientId = userData?.id || userData?.pk || userData?.user_id || (user && (user.id || user.pk));
+
+        if (clientId && token) {
+          const resp = await fetch(`http://127.0.0.1:8000/api/accounts/clients/${clientId}/`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Token ${token}`,
+            },
+          });
+
+          if (resp.ok) {
+            const backendData = await resp.json();
+            // Usar dados do backend se disponível, senão usar do localStorage
+            userData = { ...userData, ...backendData };
+            console.log('Dados carregados do backend:', backendData);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao buscar dados do backend:', error);
+        // Continua com dados do localStorage em caso de erro
+      }
+
+      // Atualizar foto de perfil se existir (prioritário: backend > localStorage)
+      // Aceitar tanto 'profile_photo' (novo backend) quanto 'profile_picture' (compatibilidade)
+      if (userData?.profile_photo || userData?.profile_picture) {
+        setFotoPerfil(userData.profile_photo || userData.profile_picture);
+      }
+      
+      // Preencher o formulário com os dados (backend sobrescreve localStorage)
+      form.reset({
+        nome: userData?.full_name || userData?.nome || user?.nome || "",
+        email: userData?.email || user?.email || "",
+        telefone: formatPhone(userData?.phone || userData?.telefone || ""),
+        endereco: userData?.address || userData?.endereco || "",
+        cidade: userData?.city || userData?.cidade || "",
+        estado: userData?.state || userData?.estado || "",
+      });
+    };
+
+    loadUserData();
   }, [user]);
 
   const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,34 +169,50 @@ const PerfilCliente = () => {
         const clientId = userData?.id || userData?.pk || userData?.user_id || (user && (user.id || user.pk));
 
         if (clientId && token) {
-          const payload: any = {
-            full_name: data.nome,
-            email: data.email,
-            phone: data.telefone,
-            address: data.endereco,
-            city: data.cidade,
-            state: data.estado,
-          };
+          // Usar FormData para permitir envio de arquivo
+          const formData = new FormData();
+          formData.append('full_name', data.nome);
+          formData.append('email', data.email);
+          formData.append('phone', data.telefone);
+          formData.append('address', data.endereco);
+          formData.append('city', data.cidade);
+          formData.append('state', data.estado);
 
+          // Adicionar imagem se houver e for uma nova imagem (base64 = nova)
           if (fotoPerfil && fotoPerfil.startsWith('data:')) {
-            payload.profile_picture = fotoPerfil;
+            // Converter data URL para Blob
+            const response = await fetch(fotoPerfil);
+            const blob = await response.blob();
+            // Usar 'profile_photo' conforme esperado pelo backend
+            formData.append('profile_photo', blob, 'profile.jpg');
           }
 
           const resp = await fetch(`http://127.0.0.1:8000/api/accounts/clients/${clientId}/`, {
             method: 'PATCH',
             headers: {
-              'Content-Type': 'application/json',
               'Authorization': `Token ${token}`,
+              // Não incluir Content-Type; o browser o define automaticamente com boundary para multipart
             },
-            body: JSON.stringify(payload),
+            body: formData,
           });
 
           if (!resp.ok) {
             const text = await resp.text().catch(() => '');
-            console.error('Erro ao salvar no backend:', resp.status, text);
+            console.error('Erro ao salvar no backend:');
+            console.error('Status:', resp.status);
+            console.error('Resposta:', text);
+            console.error('FormData enviado:', {
+              full_name: data.nome,
+              email: data.email,
+              phone: data.telefone,
+              address: data.endereco,
+              city: data.cidade,
+              state: data.estado,
+              tem_imagem: fotoPerfil && fotoPerfil.startsWith('data:'),
+            });
             toast({
               title: 'Erro ao salvar',
-              description: 'Não foi possível salvar suas informações no servidor.',
+              description: `Não foi possível salvar suas informações no servidor. Status: ${resp.status}`,
             });
             return;
           }
