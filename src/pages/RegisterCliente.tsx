@@ -169,6 +169,8 @@ const clienteSchema = z
         confirmarSenha: z.string(),
         telefone: z.string().min(10, "Telefone inválido").max(15).regex(/^\(\d{2}\)\s?\d{4,5}-?\d{4}$/, "Telefone deve ter formato válido"),
         endereco: z.string().min(10, "Endereço deve ter pelo menos 10 caracteres").max(500),
+        cidade: z.string().min(2, "Cidade é obrigatória").max(100),
+        estado: z.string().length(2, "Use a sigla do estado (ex: SP)"),
     })
     .refine((data) => data.senha === data.confirmarSenha, { message: "Senhas não coincidem", path: ["confirmarSenha"] });
 
@@ -250,9 +252,12 @@ const RegisterCliente: React.FC = () => {
         formData.append('cpf', data.cpf);
         formData.append('phone', data.telefone); 
         formData.append('address', data.endereco);
+        formData.append('city', data.cidade);
+        formData.append('state', data.estado);
         formData.append('identity_document', documento);
         if (fotoPerfil) {
-            formData.append('profile_picture', fotoPerfil);
+            // backend espera 'profile_photo' field
+            formData.append('profile_photo', fotoPerfil);
         }
 
         try {
@@ -385,11 +390,24 @@ const RegisterCliente: React.FC = () => {
                                     })()}
                                     {errors.telefone && <p className="text-sm text-red-500 mt-1">{errors.telefone.message}</p>}
                                 </div>
-                                <div>
-                                    <Label htmlFor="endereco">Endereço Completo *</Label>
-                                    <Textarea id="endereco" {...register("endereco")} placeholder="Rua, número, bairro..." className={errors.endereco ? "border-red-500" : ""} rows={3} />
-                                    {errors.endereco && <p className="text-sm text-red-500 mt-1">{errors.endereco.message}</p>}
-                                </div>
+                                                        <div>
+                                                            <Label htmlFor="endereco">Endereço Completo *</Label>
+                                                            <Textarea id="endereco" {...register("endereco")} placeholder="Rua, número, bairro..." className={errors.endereco ? "border-red-500" : ""} rows={3} />
+                                                            {errors.endereco && <p className="text-sm text-red-500 mt-1">{errors.endereco.message}</p>}
+                                                        </div>
+
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            <div>
+                                                                <Label htmlFor="cidade">Cidade *</Label>
+                                                                <Input id="cidade" {...register("cidade")} placeholder="Sua cidade" className={errors.cidade ? "border-red-500" : ""} />
+                                                                {errors.cidade && <p className="text-sm text-red-500 mt-1">{errors.cidade.message}</p>}
+                                                            </div>
+                                                            <div>
+                                                                <Label htmlFor="estado">Estado (sigla) *</Label>
+                                                                <Input id="estado" maxLength={2} {...register("estado")} placeholder="SP" className={errors.estado ? "border-red-500" : ""} />
+                                                                {errors.estado && <p className="text-sm text-red-500 mt-1">{errors.estado.message}</p>}
+                                                            </div>
+                                                        </div>
                                 <div>
                                     <Label>Foto de Perfil</Label>
                                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors bg-gray-50">

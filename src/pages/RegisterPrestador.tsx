@@ -55,6 +55,8 @@ const prestadorSchema = z.object({
   endereco: z.string()
     .min(10, "Endereço deve ter pelo menos 10 caracteres")
     .max(500, "Endereço deve ter no máximo 500 caracteres"),
+  cidade: z.string().min(2, "Cidade é obrigatória").max(100),
+  estado: z.string().length(2, "Use a sigla do estado (ex: SP)"),
   qualificacaoTecnica: z.string()
     .min(20, "Descreva sua qualificação técnica (mínimo 20 caracteres)")
     .max(1000, "Qualificação técnica deve ter no máximo 1000 caracteres"),
@@ -209,6 +211,8 @@ const RegisterPrestador = () => {
     formData.append("professional_email", data.email); 
     formData.append("service_address", data.endereco);
     formData.append("technical_qualification", data.qualificacaoTecnica);
+    formData.append("city", data.cidade);
+    formData.append("state", data.estado);
     
     // Nota: O backend ProviderProfile atual não tem campo 'phone'. 
     // Se quiser salvar o telefone, precisaremos adicionar esse campo ao modelo ProviderProfile no Django.
@@ -218,12 +222,23 @@ const RegisterPrestador = () => {
     // Arquivos (Nomes devem bater com ProviderRegisterSerializer)
     if (documento) formData.append("identity_document", documento);
     if (certificacoes) formData.append("certifications", certificacoes);
-    if (fotoPerfil) formData.append("profile_picture", fotoPerfil);
+    if (fotoPerfil) formData.append("profile_photo", fotoPerfil);
 
     try {
       const apiUrl = "http://127.0.0.1:8000/api/accounts/register/provider/";
       
       const response = await apiPost(apiUrl, formData);
+
+      // Armazenar token, user e provider_profile no localStorage
+      if ((response as any).token) {
+        localStorage.setItem('token', (response as any).token);
+      }
+      if ((response as any).user) {
+        localStorage.setItem('user', JSON.stringify((response as any).user));
+      }
+      if ((response as any).provider_profile) {
+        localStorage.setItem('provider_profile', JSON.stringify((response as any).provider_profile));
+      }
 
       toast({
         title: "Cadastro realizado!",
@@ -424,6 +439,19 @@ const RegisterPrestador = () => {
                   {errors.endereco && (
                     <p className="text-sm text-destructive">{errors.endereco.message}</p>
                   )}
+                </div>
+
+                <div className="form-field grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="cidade">Cidade *</Label>
+                    <Input id="cidade" {...register("cidade")} placeholder="Sua cidade" className={errors.cidade ? "border-destructive" : ""} />
+                    {errors.cidade && <p className="text-sm text-destructive">{errors.cidade.message}</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="estado">Estado (sigla) *</Label>
+                    <Input id="estado" maxLength={2} {...register("estado")} placeholder="SP" className={errors.estado ? "border-destructive" : ""} />
+                    {errors.estado && <p className="text-sm text-destructive">{errors.estado.message}</p>}
+                  </div>
                 </div>
 
                 {/* Qualificação Técnica */}

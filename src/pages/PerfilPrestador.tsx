@@ -82,32 +82,75 @@ const PerfilPrestador = () => {
     return `(${ddd}) ${prefix}-${last4}`;
   };
 
-  // Carregar dados do usuário do localStorage quando o componente montar
+  // Carregar dados do usuário do localStorage e do backend quando o componente montar
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        
-        // Atualizar foto de perfil se existir
-        if (userData.profile_picture) {
-          setFotoPerfil(userData.profile_picture);
+    const loadUserData = async () => {
+      const storedUser = localStorage.getItem('user');
+      const storedProviderProfile = localStorage.getItem('provider_profile');
+      let userData: any = null;
+      let providerData: any = null;
+      
+      if (storedUser) {
+        try {
+          userData = JSON.parse(storedUser);
+        } catch (error) {
+          console.error('Erro ao parsear userData do localStorage:', error);
         }
-        
-        // Preencher o formulário com os dados do usuário
-        form.reset({
-          nome: userData.full_name || userData.nome || "",
-          email: userData.professional_email || userData.email || "",
-          telefone: formatPhone(userData.phone || userData.telefone || ""),
-          descricao: userData.technical_qualification || userData.descricao || "",
-          cidade: userData.city || userData.cidade || "",
-          estado: userData.state || userData.estado || "",
-          disponibilidade: userData.availability || userData.disponibilidade || "",
-        });
-      } catch (error) {
-        console.error('Erro ao carregar dados do usuário:', error);
       }
-    }
+
+      if (storedProviderProfile) {
+        try {
+          providerData = JSON.parse(storedProviderProfile);
+        } catch (error) {
+          console.error('Erro ao parsear providerData do localStorage:', error);
+        }
+      }
+
+      // Tentar buscar dados atualizados do backend via providers-edit/
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          const resp = await fetch('http://127.0.0.1:8000/api/accounts/providers-edit/', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Token ${token}`,
+            },
+          });
+
+          if (resp.ok) {
+            const backendData = await resp.json();
+            // Usar dados do backend se disponível
+            providerData = backendData;
+            console.log('Dados carregados do backend:', backendData);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao buscar dados do backend:', error);
+        // Continua com dados do localStorage em caso de erro
+      }
+
+      // Mesclar dados: backend + localStorage
+      const mergedData = { ...userData, ...providerData };
+      
+      // Atualizar foto de perfil se existir (prioritário: backend > localStorage)
+      // Aceitar tanto 'profile_photo' (novo backend) quanto 'profile_picture' (compatibilidade)
+      if (mergedData?.profile_photo || mergedData?.profile_picture) {
+        setFotoPerfil(mergedData.profile_photo || mergedData.profile_picture);
+      }
+      
+      // Preencher o formulário com os dados (backend sobrescreve localStorage)
+      form.reset({
+        nome: mergedData?.full_name || mergedData?.nome || "",
+        email: mergedData?.professional_email || mergedData?.email || "",
+        telefone: formatPhone(mergedData?.phone || mergedData?.telefone || ""),
+        descricao: mergedData?.technical_qualification || mergedData?.descricao || "",
+        cidade: mergedData?.city || mergedData?.cidade || "",
+        estado: mergedData?.state || mergedData?.estado || "",
+        disponibilidade: mergedData?.availability || mergedData?.disponibilidade || "",
+      });
+    };
+
+    loadUserData();
   }, []);
 
   const formServico = useForm<ServicoFormData>({
@@ -140,69 +183,110 @@ const PerfilPrestador = () => {
 
       // Atualizar dados do usuário no localStorage (mantendo comportamento atual)
       const storedUser = localStorage.getItem('user');
+      const storedProviderProfile = localStorage.getItem('provider_profile');
       let userData: any = null;
+      let providerData: any = null;
+      
       if (storedUser) {
         try {
           userData = JSON.parse(storedUser);
-          userData.nome = data.nome;
-          userData.full_name = data.nome;
-          userData.email = data.email;
-          userData.professional_email = data.email;
-          userData.telefone = data.telefone;
-          userData.phone = data.telefone;
-          userData.descricao = data.descricao;
-          userData.technical_qualification = data.descricao;
-          userData.cidade = data.cidade;
-          userData.city = data.cidade;
-          userData.estado = data.estado;
-          userData.state = data.estado;
-          userData.disponibilidade = data.disponibilidade;
-          userData.availability = data.disponibilidade;
-          localStorage.setItem('user', JSON.stringify(userData));
         } catch (e) {
-          console.error('Erro ao atualizar localStorage:', e);
+          console.error('Erro ao parsear user:', e);
         }
+      }
+
+      if (storedProviderProfile) {
+        try {
+          providerData = JSON.parse(storedProviderProfile);
+        } catch (e) {
+          console.error('Erro ao parsear provider_profile:', e);
+        }
+      }
+
+      if (userData) {
+        userData.nome = data.nome;
+        userData.full_name = data.nome;
+        userData.email = data.email;
+        userData.professional_email = data.email;
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
+
+      if (providerData) {
+        providerData.full_name = data.nome;
+        providerData.professional_email = data.email;
+        providerData.phone = data.telefone;
+        providerData.technical_qualification = data.descricao;
+        providerData.city = data.cidade;
+        providerData.state = data.estado;
+        providerData.availability = data.disponibilidade;
+        localStorage.setItem('provider_profile', JSON.stringify(providerData));
       }
 
       // Enviar atualização para o backend (se o token/endpoint estiver disponível)
       try {
         const token = localStorage.getItem('token');
-        // Tentar determinar o provider id a partir do user armazenado
-        const providerId = userData?.id || userData?.pk || userData?.user_id;
 
-        if (providerId && token) {
-          const payload: any = {
-            full_name: data.nome,
-            professional_email: data.email,
-            phone: data.telefone,
-            technical_qualification: data.descricao,
-            city: data.cidade,
-            state: data.estado,
-            availability: data.disponibilidade,
-          };
+        // O backend agora expõe `providers-edit/` que usa o token para identificar o prestador.
+        // Não é necessário enviar o providerId na URL.
+        if (token) {
+          // Usar FormData para permitir envio de arquivo
+          const formData = new FormData();
+          formData.append('full_name', data.nome);
+          formData.append('professional_email', data.email);
+          formData.append('phone', data.telefone);
+          formData.append('technical_qualification', data.descricao);
+          formData.append('city', data.cidade);
+          formData.append('state', data.estado);
+          formData.append('availability', data.disponibilidade);
 
-          // Se a foto for um data URL, envie como profile_picture (backend precisa aceitar base64 ou multipart)
+          // Adicionar imagem se houver e for uma nova imagem (base64 = nova)
           if (fotoPerfil && fotoPerfil.startsWith('data:')) {
-            payload.profile_picture = fotoPerfil;
+            // Converter data URL para Blob
+            const response = await fetch(fotoPerfil);
+            const blob = await response.blob();
+            // Usar 'profile_photo' conforme esperado pelo backend
+            formData.append('profile_photo', blob, 'profile.jpg');
           }
 
-          const resp = await fetch(`http://127.0.0.1:8000/api/accounts/providers/${providerId}/`, {
+          const resp = await fetch(`http://127.0.0.1:8000/api/accounts/providers-edit/`, {
             method: 'PATCH',
             headers: {
-              'Content-Type': 'application/json',
               'Authorization': `Token ${token}`,
+              // Não incluir Content-Type; o browser o define automaticamente com boundary para multipart
             },
-            body: JSON.stringify(payload),
+            body: formData,
           });
 
           if (!resp.ok) {
             const text = await resp.text().catch(() => '');
-            console.error('Erro ao salvar no backend:', resp.status, text);
+            console.error('Erro ao salvar no backend:');
+            console.error('Status:', resp.status);
+            console.error('Resposta:', text);
             toast({
               title: 'Erro ao salvar',
-              description: 'Não foi possível salvar suas informações no servidor.',
+              description: `Não foi possível salvar suas informações no servidor. Status: ${resp.status}`,
             });
             return;
+          }
+
+          // Atualizar com dados da resposta do backend
+          try {
+            const responseData = await resp.json();
+            console.log('Resposta do backend:', responseData);
+            
+            // Atualizar foto se o backend retornou uma nova URL
+            if (responseData.profile_photo) {
+              setFotoPerfil(responseData.profile_photo);
+              console.log('Foto atualizada com URL do backend:', responseData.profile_photo);
+            }
+            
+            // Atualizar provider_profile no localStorage com dados atualizados
+            if (providerData) {
+              providerData = { ...providerData, ...responseData };
+              localStorage.setItem('provider_profile', JSON.stringify(providerData));
+            }
+          } catch (parseError) {
+            console.error('Erro ao fazer parse da resposta:', parseError);
           }
         }
 
