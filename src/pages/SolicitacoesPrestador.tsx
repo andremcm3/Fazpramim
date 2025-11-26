@@ -7,9 +7,12 @@ import { Clock, AlertCircle, CheckCircle, Calendar, DollarSign, User, ArrowLeft,
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { acceptServiceRequest, rejectServiceRequest } from "@/service/app";
+import { useToast } from "@/hooks/use-toast";
 
 const SolicitacoesPrestador = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [solicitacoes, setSolicitacoes] = useState<any[]>([]);
 
   useEffect(() => {
@@ -46,42 +49,24 @@ const SolicitacoesPrestador = () => {
 
   const handleAceitar = async (id: number) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://127.0.0.1:8000/api/accounts/service-request/${id}/`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: 'accepted' })
-      });
-      
-      if (response.ok) {
-        setSolicitacoes(prev => 
-          prev.map(s => s.id === id ? { ...s, status: "accepted" } : s)
-        );
-      }
-    } catch (error) {
+      const token = localStorage.getItem('token') || '';
+      const res = await acceptServiceRequest(id, token);
+      setSolicitacoes(prev => prev.map(s => s.id === id ? { ...s, status: "accepted" } : s));
+      toast({ title: "Solicitação aceita", description: res?.message || "A solicitação foi aceita com sucesso." });
+    } catch (error: any) {
+      toast({ title: "Não foi possível aceitar", description: error?.message || "Verifique suas permissões ou status." });
       console.error('Erro ao aceitar solicitação:', error);
     }
   };
 
   const handleRejeitar = async (id: number) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://127.0.0.1:8000/api/accounts/service-request/${id}/`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: 'rejected' })
-      });
-      
-      if (response.ok) {
-        setSolicitacoes(prev => prev.filter(s => s.id !== id));
-      }
-    } catch (error) {
+      const token = localStorage.getItem('token') || '';
+      const res = await rejectServiceRequest(id, token);
+      setSolicitacoes(prev => prev.filter(s => s.id !== id));
+      toast({ title: "Solicitação rejeitada", description: res?.message || "A solicitação foi rejeitada com sucesso." });
+    } catch (error: any) {
+      toast({ title: "Não foi possível rejeitar", description: error?.message || "Verifique suas permissões ou status." });
       console.error('Erro ao rejeitar solicitação:', error);
     }
   };
