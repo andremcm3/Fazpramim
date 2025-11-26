@@ -34,7 +34,7 @@ const perfilSchema = z.object({
   descricao: z.string().min(20, "Descrição deve ter no mínimo 20 caracteres").max(1000),
   cidade: z.string().min(2, "Cidade é obrigatória").max(100),
   estado: z.string().length(2, "Use a sigla do estado (ex: SP)"),
-  disponibilidade: z.string().min(10, "Informe sua disponibilidade").max(200),
+  // disponibilidade removida
 });
 
 type PerfilFormData = z.infer<typeof perfilSchema>;
@@ -65,7 +65,7 @@ const PerfilPrestador = () => {
       descricao: "Profissional experiente com mais de 10 anos de atuação. Atendimento de qualidade e pontualidade garantida.",
       cidade: "São Paulo",
       estado: "SP",
-      disponibilidade: "Segunda a Sexta: 08:00 - 18:00 | Sábado: 08:00 - 12:00",
+      // disponibilidade removida
     },
   });
 
@@ -146,7 +146,7 @@ const PerfilPrestador = () => {
         descricao: mergedData?.technical_qualification || mergedData?.descricao || "",
         cidade: mergedData?.city || mergedData?.cidade || "",
         estado: mergedData?.state || mergedData?.estado || "",
-        disponibilidade: mergedData?.availability || mergedData?.disponibilidade || "",
+        // disponibilidade removida
       });
     };
 
@@ -218,7 +218,7 @@ const PerfilPrestador = () => {
         providerData.technical_qualification = data.descricao;
         providerData.city = data.cidade;
         providerData.state = data.estado;
-        providerData.availability = data.disponibilidade;
+        // disponibilidade removida do providerData
         localStorage.setItem('provider_profile', JSON.stringify(providerData));
       }
 
@@ -237,7 +237,7 @@ const PerfilPrestador = () => {
           formData.append('technical_qualification', data.descricao);
           formData.append('city', data.cidade);
           formData.append('state', data.estado);
-          formData.append('availability', data.disponibilidade);
+          // disponibilidade removida do formData
 
           // Adicionar imagem se houver e for uma nova imagem (base64 = nova)
           if (fotoPerfil && fotoPerfil.startsWith('data:')) {
@@ -446,19 +446,7 @@ const PerfilPrestador = () => {
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="disponibilidade"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Disponibilidade</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Ex: Seg-Sex 08:00-18:00" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    {/* Campo de disponibilidade removido conforme solicitação */}
 
                     <FormField
                       control={form.control}

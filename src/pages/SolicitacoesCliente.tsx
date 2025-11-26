@@ -37,15 +37,25 @@ const SolicitacoesCliente = () => {
         
         if (response.ok) {
           const data = await response.json();
-          const solicitacoesFormatadas = data.map((solicitacao: any) => ({
+          const solicitacoesFormatadas = data.map((solicitacao: any) => {
+            const p = solicitacao.provider || {};
+            // Mapear possíveis campos de nome que o backend pode usar
+            const displayName = p.nome || p.name || p.full_name || p.username || p.email || 'Prestador';
+            // Mapear possíveis campos de foto
+            const avatarUrl = p.avatar_url || p.photo || p.profile_photo || p.foto || p.image || null;
+            return {
               id: solicitacao.id,
-              providerId: solicitacao.provider?.id || solicitacao.provider?.pk || null,
-              prestador: solicitacao.provider?.username || solicitacao.provider?.email || 'Prestador',
+              providerId: p.id || p.pk || null,
+              prestador: displayName,
+              avatarUrl,
               descricao: solicitacao.description,
               data: new Date(solicitacao.created_at).toLocaleDateString('pt-BR'),
               valor: solicitacao.proposed_value ? `R$ ${parseFloat(solicitacao.proposed_value).toFixed(2)}` : 'N/A',
-              status: solicitacao.status
-            }));
+              status: solicitacao.status,
+              client_has_reviewed: !!solicitacao.client_has_reviewed,
+              provider_has_reviewed: !!solicitacao.provider_has_reviewed,
+            };
+          });
           setSolicitacoes(solicitacoesFormatadas);
 
           // Buscar detalhes dos prestadores (avatar, rating) de forma deduplicada
@@ -202,17 +212,17 @@ const SolicitacoesCliente = () => {
                         <CardTitle className="text-lg">{solicitacao.descricao}</CardTitle>
                         <CardDescription className="flex items-center gap-2 mt-2">
                           <Avatar className="h-6 w-6">
-                            {providerDetails[solicitacao.providerId]?.avatar_url ? (
-                              <AvatarImage src={providerDetails[solicitacao.providerId].avatar_url} />
+                            { (solicitacao.avatarUrl || providerDetails[solicitacao.providerId]?.avatar_url) ? (
+                              <AvatarImage src={solicitacao.avatarUrl || providerDetails[solicitacao.providerId]?.avatar_url} />
                             ) : (
                               <AvatarFallback>{(solicitacao.prestador || 'P').charAt(0).toUpperCase()}</AvatarFallback>
-                            )}
+                            ) }
                           </Avatar>
-                          <span>{solicitacao.prestador === 'Prestador' ? 'Prestador' : `Prestador - ${solicitacao.prestador}`}</span>
-                          {providerDetails[solicitacao.providerId]?.average_rating && (
+                          <span>{`Prestador - ${solicitacao.prestador}`}</span>
+                          {(providerDetails[solicitacao.providerId]?.average_rating || providerDetails[solicitacao.providerId]?.rating) && (
                             <span className="flex items-center text-xs ml-2"> 
                               <Star className="w-3 h-3 text-yellow-500 mr-1" />
-                              {Number(providerDetails[solicitacao.providerId].average_rating).toFixed(1)}
+                              {Number(providerDetails[solicitacao.providerId].average_rating || providerDetails[solicitacao.providerId].rating).toFixed(1)}
                             </span>
                           )}
                         </CardDescription>
@@ -257,17 +267,17 @@ const SolicitacoesCliente = () => {
                         <CardTitle className="text-lg">{solicitacao.descricao}</CardTitle>
                         <CardDescription className="flex items-center gap-2 mt-2">
                           <Avatar className="h-6 w-6">
-                            {providerDetails[solicitacao.providerId]?.avatar_url ? (
-                              <AvatarImage src={providerDetails[solicitacao.providerId].avatar_url} />
+                            { (solicitacao.avatarUrl || providerDetails[solicitacao.providerId]?.avatar_url) ? (
+                              <AvatarImage src={solicitacao.avatarUrl || providerDetails[solicitacao.providerId]?.avatar_url} />
                             ) : (
                               <AvatarFallback>{(solicitacao.prestador || 'P').charAt(0).toUpperCase()}</AvatarFallback>
-                            )}
+                            ) }
                           </Avatar>
-                          <span>{solicitacao.prestador === 'Prestador' ? 'Prestador' : `Prestador - ${solicitacao.prestador}`}</span>
-                          {providerDetails[solicitacao.providerId]?.average_rating && (
+                          <span>{`Prestador - ${solicitacao.prestador}`}</span>
+                          {(providerDetails[solicitacao.providerId]?.average_rating || providerDetails[solicitacao.providerId]?.rating) && (
                             <span className="flex items-center text-xs ml-2"> 
                               <Star className="w-3 h-3 text-yellow-500 mr-1" />
-                              {Number(providerDetails[solicitacao.providerId].average_rating).toFixed(1)}
+                              {Number(providerDetails[solicitacao.providerId].average_rating || providerDetails[solicitacao.providerId].rating).toFixed(1)}
                             </span>
                           )}
                         </CardDescription>
@@ -326,17 +336,17 @@ const SolicitacoesCliente = () => {
                         <CardTitle className="text-lg">{solicitacao.descricao}</CardTitle>
                         <CardDescription className="flex items-center gap-2 mt-2">
                           <Avatar className="h-6 w-6">
-                            {providerDetails[solicitacao.providerId]?.avatar_url ? (
-                              <AvatarImage src={providerDetails[solicitacao.providerId].avatar_url} />
+                            { (solicitacao.avatarUrl || providerDetails[solicitacao.providerId]?.avatar_url) ? (
+                              <AvatarImage src={solicitacao.avatarUrl || providerDetails[solicitacao.providerId]?.avatar_url} />
                             ) : (
                               <AvatarFallback>{(solicitacao.prestador || 'P').charAt(0).toUpperCase()}</AvatarFallback>
-                            )}
+                            ) }
                           </Avatar>
-                          <span>{solicitacao.prestador === 'Prestador' ? 'Prestador' : `Prestador - ${solicitacao.prestador}`}</span>
-                          {providerDetails[solicitacao.providerId]?.average_rating && (
+                          <span>{`Prestador - ${solicitacao.prestador}`}</span>
+                          {(providerDetails[solicitacao.providerId]?.average_rating || providerDetails[solicitacao.providerId]?.rating) && (
                             <span className="flex items-center text-xs ml-2"> 
                               <Star className="w-3 h-3 text-yellow-500 mr-1" />
-                              {Number(providerDetails[solicitacao.providerId].average_rating).toFixed(1)}
+                              {Number(providerDetails[solicitacao.providerId].average_rating || providerDetails[solicitacao.providerId].rating).toFixed(1)}
                             </span>
                           )}
                         </CardDescription>
@@ -367,9 +377,10 @@ const SolicitacoesCliente = () => {
                       <Button 
                         className="flex-1 bg-primary hover:bg-primary/90"
                         onClick={() => { setReviewTargetId(solicitacao.id); setReviewOpen(true); }}
+                        disabled={solicitacao.client_has_reviewed}
                       >
                         <Star className="w-4 h-4 mr-2" />
-                        Avaliar Prestador
+                        {solicitacao.client_has_reviewed ? 'Avaliação enviada' : 'Avaliar Prestador'}
                       </Button>
                     </div>
                   </CardContent>
@@ -416,6 +427,10 @@ const SolicitacoesCliente = () => {
                   setReviewOpen(false);
                   setComment("");
                   setPhotoFile(null);
+                  // Atualizar item como avaliado com base no backend (fonte da verdade)
+                  setSolicitacoes(prev => prev.map(s => 
+                    s.id === reviewTargetId ? { ...s, client_has_reviewed: true } : s
+                  ));
                 } catch (error: any) {
                   toast({ title: "Erro ao enviar avaliação", description: error?.message || "Tente novamente." });
                 }

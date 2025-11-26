@@ -17,6 +17,8 @@ interface Provider {
   service_address: string;
   profile_photo: string | null;
   email: string;
+  average_rating?: number;
+  total_reviews?: number;
   // Campos mockados (ainda não vêm do backend, mas mantemos para o layout não quebrar)
   avaliacao?: number;
   numAvaliacoes?: number;
@@ -53,8 +55,29 @@ const Search = () => {
 
       const data = await response.json();
       // O DRF pode retornar paginado ({ results: [] }) ou lista direta [].
-      const results = Array.isArray(data) ? data : data.results || [];
-      setProviders(results);
+      const results: Provider[] = Array.isArray(data) ? data : data.results || [];
+
+      // Enriquecer com média e total de avaliações consultando o detalhe
+      const enriched = await Promise.all(
+        results.map(async (p) => {
+          try {
+            const detRes = await fetch(`http://127.0.0.1:8000/api/accounts/providers/${p.id}/`, {
+              method: "GET",
+              headers: { "Content-Type": "application/json" },
+            });
+            if (!detRes.ok) return p;
+            const det = await detRes.json();
+            return {
+              ...p,
+              average_rating: typeof det.average_rating === 'number' ? det.average_rating : 0,
+              total_reviews: typeof det.total_reviews === 'number' ? det.total_reviews : 0,
+            } as Provider;
+          } catch {
+            return p;
+          }
+        })
+      );
+      setProviders(enriched);
       
     } catch (err) {
       console.error(err);
@@ -87,8 +110,8 @@ const Search = () => {
     return `http://127.0.0.1:8000${path}`;
   };
 
-  // Helper para renderizar estrelas (Mock visual, já que o back ainda não manda a média)
-  const renderStars = (rating: number = 5) => {
+  // Helper para renderizar estrelas baseado na média do backend
+  const renderStars = (rating: number = 0) => {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
         key={i}
@@ -226,11 +249,14 @@ const Search = () => {
                         <div>
                           <CardTitle className="text-lg">{provider.full_name}</CardTitle>
                           <div className="flex items-center space-x-1 mt-1">
-                            {/* Mock de estrelas (5.0 fixo até termos review no serializer) */}
-                            {renderStars(5)}
-                            <span className="text-sm text-muted-foreground ml-2">
-                              (Novo)
-                            </span>
+                            {renderStars(provider.average_rating ?? 0)}
+                            {typeof provider.average_rating === 'number' && (provider.total_reviews ?? 0) > 0 ? (
+                              <span className="text-sm text-muted-foreground ml-2">
+                                {Number(provider.average_rating).toFixed(1)} ({provider.total_reviews} avaliações)
+                              </span>
+                            ) : (
+                              <span className="text-sm text-muted-foreground ml-2">(Novo)</span>
+                            )}
                           </div>
                         </div>
                       </CardHeader>

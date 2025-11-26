@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
-  MapPin, Star, Clock, MessageCircle, Calendar, CheckCircle, Award, Phone, Mail, ArrowLeft, Loader2, Briefcase 
+  MapPin, Star, Clock, MessageCircle, CheckCircle, Award, Phone, Mail, ArrowLeft, Loader2, Briefcase 
 } from "lucide-react";
 
 // --- COMPONENTES UI MOCKADOS (Para garantir que funcione aqui e no seu VS Code) ---
@@ -133,16 +133,7 @@ const PrestadorDetails = () => {
     ));
   };
 
-  // Dados Mockados para preencher o layout onde a API ainda não fornece dados
-  const mockAvailability = [
-      { dia: "Segunda", horarios: ["08:00-18:00"] },
-      { dia: "Terça", horarios: ["08:00-18:00"] },
-      { dia: "Quarta", horarios: ["08:00-18:00"] },
-      { dia: "Quinta", horarios: ["08:00-18:00"] },
-      { dia: "Sexta", horarios: ["08:00-18:00"] },
-      { dia: "Sábado", horarios: ["09:00-13:00"] },
-      { dia: "Domingo", horarios: [] }
-  ];
+  // Disponibilidade típica removida conforme solicitação
 
   if (loading) {
     return (
@@ -347,40 +338,7 @@ const PrestadorDetails = () => {
               </Card>
             </div>
 
-            {/* Sidebar (Disponibilidade Mockada para manter layout) */}
-            <div className="space-y-6">
-              <Card className="surface-card sticky top-24">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-lg">
-                    <Calendar className="w-5 h-5 mr-2 text-primary" />
-                    Disponibilidade Típica
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {mockAvailability.map((dia, index) => (
-                      <div key={index} className="flex justify-between items-center text-sm">
-                        <span className="font-medium text-gray-700">{dia.dia}</span>
-                        <div className="text-right">
-                          {dia.horarios.length > 0 ? (
-                            <span className="text-gray-600">{dia.horarios[0]}</span>
-                          ) : (
-                            <span className="text-red-400">Indisponível</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <Button 
-                    className="w-full mt-6 bg-green-600 hover:bg-green-700" 
-                    onClick={() => navigate(`/solicitar/${provider.id}`)}
-                  >
-                    Agendar Agora
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+            {/* Sidebar removida */}
           </div>
         </div>
       </main>
