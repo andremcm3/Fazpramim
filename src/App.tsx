@@ -18,6 +18,7 @@ import PerfilCliente from "./pages/PerfilCliente";
 import HomePrestador from "./pages/HomePrestador";
 import HistoricoPrestador from "./pages/HistoricoPrestador";
 import SolicitacoesPrestador from "./pages/SolicitacoesPrestador";
+import SolicitacoesCliente from "./pages/SolicitacoesCliente";
 import AvaliacoesPrestador from "./pages/AvaliacoesPrestador";
 import NotFound from "./pages/NotFound";
 
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/home-prestador" element={<HomePrestador />} />
             <Route path="/historico-prestador" element={<HistoricoPrestador />} />
             <Route path="/solicitacoes-prestador" element={<SolicitacoesPrestador />} />
+            <Route path="/solicitacoes-cliente" element={<SolicitacoesCliente />} />
             <Route path="/avaliacoes-prestador" element={<AvaliacoesPrestador />} />
             
             <Route path="*" element={<NotFound />} />

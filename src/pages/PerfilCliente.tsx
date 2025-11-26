@@ -460,9 +460,9 @@ const PerfilCliente = () => {
               <Button 
                 className="flex-1" 
                 variant="outline"
-                onClick={() => navigate("/search")}
+                onClick={() => navigate("/solicitacoes-cliente")}
               >
-                Solicitar Serviço
+                Minhas Solicitações
               </Button>
             </CardContent>
           </Card>

@@ -110,6 +110,7 @@ const Login = () => {
           console.log('userData formatado:', userData);
           
           localStorage.setItem('user', JSON.stringify(userData));
+          localStorage.setItem('user_type', isPrestador ? 'prestador' : 'cliente');
           
           // Força a atualização do contexto de autenticação
           window.dispatchEvent(new Event('storage'));

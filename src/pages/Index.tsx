@@ -330,17 +330,17 @@ const Index = () => {
 
             <Card 
               className="surface-card cursor-pointer hover:shadow-[var(--shadow-medium)] transition-[var(--transition-smooth)] hover:scale-105"
-              onClick={() => navigate("/search")}
+              onClick={() => navigate("/solicitacoes-cliente")}
             >
               <CardContent className="p-8">
                 <div className="w-16 h-16 rounded-lg bg-accent flex items-center justify-center mb-4">
                   <Calendar className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold text-foreground mb-2">
-                  Solicitar Serviço
+                  Minhas Solicitações
                 </h3>
                 <p className="text-muted-foreground">
-                  Descreva o que você precisa e receba propostas de prestadores
+                  Acompanhe o andamento dos seus serviços e converse com prestadores
                 </p>
               </CardContent>
             </Card>

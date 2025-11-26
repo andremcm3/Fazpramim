@@ -7,7 +7,7 @@ import { Clock, AlertCircle, CheckCircle, Calendar, DollarSign, User, ArrowLeft,
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { acceptServiceRequest, rejectServiceRequest } from "@/service/app";
+import { acceptServiceRequest, rejectServiceRequest, completeServiceRequest } from "@/service/app";
 import { useToast } from "@/hooks/use-toast";
 
 const SolicitacoesPrestador = () => {
@@ -69,6 +69,38 @@ const SolicitacoesPrestador = () => {
       toast({ title: "Não foi possível rejeitar", description: error?.message || "Verifique suas permissões ou status." });
       console.error('Erro ao rejeitar solicitação:', error);
     }
+  };
+
+  const handleFinalizar = async (id: number) => {
+    try {
+      const token = localStorage.getItem('token') || '';
+      const res = await completeServiceRequest(id, token);
+      
+      // Verificar se ambos confirmaram (status = completed)
+      if (res?.status === 'completed') {
+        toast({ 
+          title: "Serviço concluído!", 
+          description: res?.message || "O serviço foi finalizado com sucesso." 
+        });
+        // Remover da lista de Em Andamento
+        setSolicitacoes(prev => prev.filter(s => s.id !== id));
+      } else {
+        toast({ 
+          title: "Confirmação registrada", 
+          description: res?.message || "Aguardando confirmação do cliente para finalizar." 
+        });
+      }
+    } catch (error: any) {
+      toast({ 
+        title: "Não foi possível finalizar", 
+        description: error?.message || "Verifique se o serviço pode ser finalizado." 
+      });
+      console.error('Erro ao finalizar serviço:', error);
+    }
+  };
+
+  const handleAbrirChat = (id: number) => {
+    navigate(`/chat/${id}`);
   };
 
   const getStatusBadge = (status: string) => {
@@ -222,14 +254,14 @@ const SolicitacoesPrestador = () => {
                       <Button 
                         variant="outline"
                         className="flex-1"
-                        onClick={() => console.log("Abrir chat:", solicitacao.id)}
+                        onClick={() => handleAbrirChat(solicitacao.id)}
                       >
                         <MessageSquare className="w-4 h-4 mr-2" />
                         Mensagens
                       </Button>
                       <Button 
                         className="flex-1 bg-green-600 hover:bg-green-700"
-                        onClick={() => console.log("Finalizar:", solicitacao.id)}
+                        onClick={() => handleFinalizar(solicitacao.id)}
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
                         Finalizar
