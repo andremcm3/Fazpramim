@@ -21,6 +21,7 @@ import SolicitacoesPrestador from "./pages/SolicitacoesPrestador";
 import SolicitacoesCliente from "./pages/SolicitacoesCliente";
 import AvaliacoesPrestador from "./pages/AvaliacoesPrestador";
 import NotFound from "./pages/NotFound";
+import GerenciarPortfolio from "./pages/GerenciarPortfolio";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ const App = () => (
             <Route path="/solicitacoes-prestador" element={<SolicitacoesPrestador />} />
             <Route path="/solicitacoes-cliente" element={<SolicitacoesCliente />} />
             <Route path="/avaliacoes-prestador" element={<AvaliacoesPrestador />} />
+                        <Route path="/gerenciar-portfolio" element={<GerenciarPortfolio />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>

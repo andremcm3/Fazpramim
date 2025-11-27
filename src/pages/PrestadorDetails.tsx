@@ -91,6 +91,8 @@ const PrestadorDetails = () => {
   const navigate = useNavigate();
   const [provider, setProvider] = useState<ProviderDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerPhoto, setViewerPhoto] = useState<PortfolioPhoto | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // 🎯 Fetch dos dados reais
@@ -248,9 +250,9 @@ const PrestadorDetails = () => {
             </CardContent>
           </Card>
 
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Coluna Principal */}
-            <div className="lg:col-span-2 space-y-8">
+          <div className="space-y-8">
+            {/* Conteúdo Principal - mesma largura do card de topo */}
+            <div className="space-y-8">
               {/* Sobre */}
               <Card className="surface-card">
                 <CardHeader>
@@ -280,9 +282,10 @@ const PrestadorDetails = () => {
                         {provider.portfolio_photos.map(photo => (
                             <div key={photo.id} className="group relative aspect-square bg-gray-100 rounded-lg overflow-hidden border">
                                 <img 
-                                    src={getPhotoUrl(photo.photo)} 
-                                    alt={photo.title} 
-                                    className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+                                  src={getPhotoUrl(photo.photo)} 
+                                  alt={photo.title} 
+                                  className="w-full h-full object-cover hover:scale-110 transition-transform duration-500 cursor-zoom-in"
+                                  onClick={() => { setViewerPhoto(photo); setViewerOpen(true); }}
                                 />
                                 <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity truncate">
                                     {photo.title || "Trabalho realizado"}
@@ -388,12 +391,36 @@ const PrestadorDetails = () => {
                 </CardContent>
               </Card>
             </div>
-
-            {/* Sidebar removida */}
           </div>
         </div>
       </main>
       
+      {/* Viewer de Imagem */}
+      {viewerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true">
+          <div className="max-w-5xl w-full bg-white rounded-lg shadow-lg overflow-hidden">
+            <div className="p-4 border-b">
+              <h3 className="font-semibold text-lg">{viewerPhoto?.title || 'Visualizar imagem'}</h3>
+              {viewerPhoto?.description && (
+                <p className="text-sm text-gray-500 mt-1">{viewerPhoto.description}</p>
+              )}
+            </div>
+            <div className="p-4">
+              {viewerPhoto && (
+                <img
+                  src={getPhotoUrl(viewerPhoto.photo)}
+                  alt={viewerPhoto.title || 'Imagem do portfólio'}
+                  className="w-full h-auto rounded-md"
+                />
+              )}
+            </div>
+            <div className="p-4 border-t flex justify-end">
+              <Button variant="outline" onClick={() => setViewerOpen(false)}>Fechar</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </div>
   );

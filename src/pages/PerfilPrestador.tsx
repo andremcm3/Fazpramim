@@ -47,6 +47,13 @@ interface Servico {
   preco: string;
 }
 
+interface PortfolioPhoto {
+  id: number;
+  photo: string;
+  title: string;
+  description: string;
+}
+
 const PerfilPrestador = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -57,6 +64,7 @@ const PerfilPrestador = () => {
   const [mostrarFormServico, setMostrarFormServico] = useState(false);
   const [certificacoes, setCertificacoes] = useState<string[]>([]);
   const [novaCertificacao, setNovaCertificacao] = useState<File | null>(null);
+  const [portfolioPhotos, setPortfolioPhotos] = useState<PortfolioPhoto[]>([]);
 
   const form = useForm<PerfilFormData>({
     resolver: zodResolver(perfilSchema),
@@ -148,6 +156,11 @@ const PerfilPrestador = () => {
           ? mergedData.certifications_urls
           : [];
       setCertificacoes(certs.filter((c: any) => typeof c === 'string'));
+
+      // Carregar fotos do portfólio
+      if (Array.isArray(mergedData?.portfolio_photos)) {
+        setPortfolioPhotos(mergedData.portfolio_photos);
+      }
       
       // Preencher o formulário com os dados (backend sobrescreve localStorage)
       form.reset({
@@ -693,6 +706,61 @@ const PerfilPrestador = () => {
                   Enviar Certificação
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Meu Portfólio */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Meu Portfólio</CardTitle>
+                  <CardDescription>Fotos e vídeos dos seus trabalhos realizados</CardDescription>
+                </div>
+                <Button
+                  onClick={() => navigate("/gerenciar-portfolio")}
+                  variant="outline"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Gerenciar Portfólio
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {portfolioPhotos.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-muted-foreground mb-4">Nenhuma foto no portfólio ainda.</p>
+                  <Button onClick={() => navigate("/gerenciar-portfolio")}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar Primeira Foto
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {portfolioPhotos.slice(0, 8).map((photo) => {
+                    const photoUrl = photo.photo.startsWith('http') ? photo.photo : `http://127.0.0.1:8000${photo.photo}`;
+                    return (
+                      <div key={photo.id} className="group relative aspect-square bg-gray-100 rounded-lg overflow-hidden border hover:border-primary transition-colors">
+                        <img
+                          src={photoUrl}
+                          alt={photo.title || 'Trabalho'}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                          <p className="font-semibold truncate">{photo.title || 'Sem título'}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {portfolioPhotos.length > 8 && (
+                <div className="mt-4 text-center">
+                  <Button variant="outline" onClick={() => navigate("/gerenciar-portfolio")}>
+                    Ver Todas ({portfolioPhotos.length} fotos)
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
