@@ -157,6 +157,7 @@ const PerfilCliente = () => {
           userData.city = data.cidade;
           userData.estado = data.estado;
           userData.state = data.estado;
+          userData.profile_photo = fotoPerfil;
           localStorage.setItem('user', JSON.stringify(userData));
         } catch (e) {
           console.error('Erro ao atualizar localStorage:', e);
@@ -179,12 +180,9 @@ const PerfilCliente = () => {
           formData.append('state', data.estado);
 
           // Adicionar imagem se houver e for uma nova imagem (base64 = nova)
-          if (fotoPerfil && fotoPerfil.startsWith('data:')) {
-            // Converter data URL para Blob
-            const response = await fetch(fotoPerfil);
-            const blob = await response.blob();
-            // Usar 'profile_photo' conforme esperado pelo backend
-            formData.append('profile_photo', blob, 'profile.jpg');
+          const fileInput = document.getElementById('foto-upload') as HTMLInputElement;
+          if (fileInput && fileInput.files && fileInput.files.length > 0) {
+            formData.append('profile_photo', fileInput.files[0], 'profile.jpg');
           }
 
           const resp = await fetch(`http://127.0.0.1:8000/api/accounts/clients/${clientId}/`, {
@@ -201,20 +199,29 @@ const PerfilCliente = () => {
             console.error('Erro ao salvar no backend:');
             console.error('Status:', resp.status);
             console.error('Resposta:', text);
-            console.error('FormData enviado:', {
-              full_name: data.nome,
-              email: data.email,
-              phone: data.telefone,
-              address: data.endereco,
-              city: data.cidade,
-              state: data.estado,
-              tem_imagem: fotoPerfil && fotoPerfil.startsWith('data:'),
-            });
             toast({
               title: 'Erro ao salvar',
               description: `Não foi possível salvar suas informações no servidor. Status: ${resp.status}`,
             });
             return;
+          }
+
+          // Se salvou com sucesso, buscar dados atualizados do backend
+          const getRespData = await fetch(`http://127.0.0.1:8000/api/accounts/clients/${clientId}/`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Token ${token}`,
+            },
+          });
+
+          if (getRespData.ok) {
+            const backendData = await getRespData.json();
+            // Atualizar foto perfil com a URL do backend
+            if (backendData.profile_photo) {
+              setFotoPerfil(backendData.profile_photo);
+              userData.profile_photo = backendData.profile_photo;
+              localStorage.setItem('user', JSON.stringify(userData));
+            }
           }
         }
 

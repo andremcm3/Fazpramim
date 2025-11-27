@@ -24,6 +24,7 @@ const SolicitacoesCliente = () => {
   const [rating, setRating] = useState<number>(5);
   const [comment, setComment] = useState<string>("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [finalizadosIds, setFinalizadosIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const fetchSolicitacoes = async () => {
@@ -106,6 +107,8 @@ const SolicitacoesCliente = () => {
           description: res?.message || "Aguardando confirmação do prestador para finalizar." 
         });
       }
+      // Marcar como finalizado independente do resultado
+      setFinalizadosIds(prev => new Set(prev).add(id));
     } catch (error: any) {
       toast({ 
         title: "Não foi possível finalizar", 
@@ -332,9 +335,10 @@ const SolicitacoesCliente = () => {
                       <Button 
                         className="flex-1 bg-green-600 hover:bg-green-700"
                         onClick={() => handleFinalizar(solicitacao.id)}
+                        disabled={finalizadosIds.has(solicitacao.id)}
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
-                        Finalizar
+                        {finalizadosIds.has(solicitacao.id) ? 'Finalizado' : 'Finalizar'}
                       </Button>
                     </div>
                   </CardContent>
