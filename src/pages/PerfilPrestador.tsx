@@ -55,6 +55,8 @@ const PerfilPrestador = () => {
     { id: "1", nome: "Serviço Exemplo", descricao: "Descrição do serviço exemplo", preco: "R$ 150,00" }
   ]);
   const [mostrarFormServico, setMostrarFormServico] = useState(false);
+  const [certificacoes, setCertificacoes] = useState<string[]>([]);
+  const [novaCertificacao, setNovaCertificacao] = useState<File | null>(null);
 
   const form = useForm<PerfilFormData>({
     resolver: zodResolver(perfilSchema),
@@ -137,6 +139,15 @@ const PerfilPrestador = () => {
       if (mergedData?.profile_photo || mergedData?.profile_picture) {
         setFotoPerfil(mergedData.profile_photo || mergedData.profile_picture);
       }
+
+      // Carregar certificações se o backend expõe
+      // Aceita array em mergedData.certifications ou lista em mergedData.certifications_urls
+      const certs = Array.isArray(mergedData?.certifications)
+        ? mergedData.certifications
+        : Array.isArray(mergedData?.certifications_urls)
+          ? mergedData.certifications_urls
+          : [];
+      setCertificacoes(certs.filter((c: any) => typeof c === 'string'));
       
       // Preencher o formulário com os dados (backend sobrescreve localStorage)
       form.reset({
@@ -239,6 +250,11 @@ const PerfilPrestador = () => {
           formData.append('state', data.estado);
           // disponibilidade removida do formData
 
+          // Enviar nova certificação se selecionada
+          if (novaCertificacao) {
+            formData.append('certifications', novaCertificacao, novaCertificacao.name);
+          }
+
           // Adicionar imagem se houver e for uma nova imagem (base64 = nova)
           if (fotoPerfil && fotoPerfil.startsWith('data:')) {
             // Converter data URL para Blob
@@ -284,6 +300,16 @@ const PerfilPrestador = () => {
             if (providerData) {
               providerData = { ...providerData, ...responseData };
               localStorage.setItem('provider_profile', JSON.stringify(providerData));
+            }
+
+            // Atualizar certificações na UI se vierem na resposta
+            const certsResp = Array.isArray(responseData?.certifications)
+              ? responseData.certifications
+              : Array.isArray(responseData?.certifications_urls)
+                ? responseData.certifications_urls
+                : null;
+            if (certsResp) {
+              setCertificacoes(certsResp.filter((c: any) => typeof c === 'string'));
             }
           } catch (parseError) {
             console.error('Erro ao fazer parse da resposta:', parseError);
@@ -620,6 +646,52 @@ const PerfilPrestador = () => {
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Certificações */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Certificações</CardTitle>
+              <CardDescription>Arquivos e documentos de certificação</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                {certificacoes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhuma certificação enviada ainda.</p>
+                ) : (
+                  certificacoes.map((url, idx) => (
+                    <div key={idx} className="flex items-center justify-between">
+                      <a
+                        href={url.startsWith('http') ? url : `http://127.0.0.1:8000${url}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary hover:underline text-sm truncate max-w-[70%]"
+                      >
+                        {url.split('/').pop()}
+                      </a>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cert-upload">Adicionar nova certificação</Label>
+                <Input
+                  id="cert-upload"
+                  type="file"
+                  accept="application/pdf,image/*"
+                  onChange={(e) => setNovaCertificacao(e.target.files?.[0] || null)}
+                />
+                <Button
+                  type="button"
+                  onClick={() => onSubmitPerfil(form.getValues())}
+                  disabled={!novaCertificacao}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Enviar Certificação
+                </Button>
               </div>
             </CardContent>
           </Card>

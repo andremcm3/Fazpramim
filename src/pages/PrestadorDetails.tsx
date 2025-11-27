@@ -82,6 +82,8 @@ interface ProviderDetail {
   total_reviews: number;
   portfolio_photos: PortfolioPhoto[];
   reviews: Review[];
+  certifications_urls?: string[];
+  certifications?: string | Array<string | { file?: string; url?: string; path?: string; name?: string }>;
 }
 
 const PrestadorDetails = () => {
@@ -120,6 +122,13 @@ const PrestadorDetails = () => {
     if (!path) return undefined;
     if (path.startsWith("http")) return path;
     return `http://127.0.0.1:8000${path}`;
+  };
+
+  const getCertUrl = (item: any) => {
+    if (!item) return undefined;
+    if (typeof item === 'string') return getPhotoUrl(item) || undefined;
+    const p = item.url || item.file || item.path || '';
+    return p ? getPhotoUrl(p) : undefined;
   };
 
   const renderStars = (rating: number) => {
@@ -284,6 +293,48 @@ const PrestadorDetails = () => {
                   ) : (
                     <p className="text-gray-500 italic">Nenhuma foto de portfólio disponível.</p>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* Certificações (INTEGRAÇÃO NOVA) */}
+              <Card className="surface-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <CheckCircle className="w-5 h-5 mr-2 text-blue-500" />
+                    Certificações
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    // Priorizar certifications_urls; fallback para certifications (string única ou array)
+                    const certList = (Array.isArray(provider.certifications_urls) && provider.certifications_urls.length > 0)
+                      ? provider.certifications_urls
+                      : (typeof provider.certifications === 'string' && provider.certifications)
+                        ? [provider.certifications]
+                        : (Array.isArray(provider.certifications) ? provider.certifications : []);
+                    
+                    return certList.length > 0 ? (
+                      <ul className="space-y-2">
+                        {certList.map((c, idx) => {
+                          const url = getCertUrl(c);
+                          const label = typeof c === 'string' ? c.split('/').pop() : (c?.name || (c?.file || c?.url || c?.path || '')?.toString().split('/').pop());
+                          return (
+                            <li key={idx} className="flex items-center justify-between">
+                              {url ? (
+                                <a href={url} target="_blank" rel="noreferrer" className="text-primary hover:underline truncate max-w-[80%]">
+                                  {label || 'Certificação'}
+                                </a>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">{label || 'Certificação'}</span>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <p className="text-gray-500 italic">Nenhuma certificação disponível.</p>
+                    );
+                  })()}
                 </CardContent>
               </Card>
 

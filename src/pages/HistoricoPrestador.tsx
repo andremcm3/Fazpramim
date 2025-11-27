@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Calendar, DollarSign, User, ArrowLeft } from "lucide-react";
+import { CheckCircle, Calendar, DollarSign, User, ArrowLeft, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -29,7 +29,8 @@ const HistoricoPrestador = () => {
             descricao: servico.description,
             data: new Date(servico.created_at).toLocaleDateString('pt-BR'),
             valor: servico.proposed_value ? `R$ ${parseFloat(servico.proposed_value).toFixed(2)}` : 'N/A',
-            avaliacao: 5 // TODO: Adicionar avaliação real quando backend fornecer
+            // Usa rating específico da solicitação se existir; caso contrário undefined
+            avaliacao: typeof servico.client_rating === 'number' ? servico.client_rating : undefined,
           }));
           setServicos(servicosFormatados);
         }
@@ -100,10 +101,19 @@ const HistoricoPrestador = () => {
                       <DollarSign className="w-4 h-4 text-muted-foreground" />
                       <span className="font-semibold">{servico.valor}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-yellow-500">{"★".repeat(servico.avaliacao)}</span>
-                      <span className="text-muted-foreground">({servico.avaliacao}/5)</span>
-                    </div>
+                    {typeof servico.avaliacao === 'number' && (
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center">
+                          {Array.from({ length: 5 }, (_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-4 h-4 ${i < Math.floor(servico.avaliacao) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-muted-foreground">{servico.avaliacao.toFixed(1)}/5</span>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

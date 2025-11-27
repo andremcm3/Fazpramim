@@ -54,6 +54,10 @@ const SolicitacoesCliente = () => {
               status: solicitacao.status,
               client_has_reviewed: !!solicitacao.client_has_reviewed,
               provider_has_reviewed: !!solicitacao.provider_has_reviewed,
+              client_rating: typeof solicitacao.client_rating === 'number' ? solicitacao.client_rating : null,
+              client_comment: solicitacao.client_comment || null,
+              provider_rating: typeof solicitacao.provider_rating === 'number' ? solicitacao.provider_rating : null,
+              provider_comment: solicitacao.provider_comment || null,
             };
           });
           setSolicitacoes(solicitacoesFormatadas);
@@ -143,11 +147,21 @@ const SolicitacoesCliente = () => {
   const pendentes = solicitacoes.filter(s => s.status === "pending");
   const emAndamento = solicitacoes.filter(s => s.status === "accepted");
   const concluidos = solicitacoes.filter(s => s.status === "completed");
+  const renderStars = (rating: number) => (
+    <div className="flex items-center">
+      {Array.from({ length: 5 }, (_, i) => (
+        <Star
+          key={i}
+          className={`w-4 h-4 ${i < Math.floor(rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+        />
+      ))}
+      <span className="ml-2 text-xs text-muted-foreground">{rating.toFixed(1)}/5</span>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
       <section className="container mx-auto px-4 py-12">
         <div className="mb-8">
           <Button 
@@ -219,10 +233,11 @@ const SolicitacoesCliente = () => {
                             ) }
                           </Avatar>
                           <span>{`Prestador - ${solicitacao.prestador}`}</span>
-                          {(providerDetails[solicitacao.providerId]?.average_rating || providerDetails[solicitacao.providerId]?.rating) && (
+                          {(providerDetails[solicitacao.providerId]?.average_rating ?? providerDetails[solicitacao.providerId]?.rating) !== undefined && (
                             <span className="flex items-center text-xs ml-2"> 
                               <Star className="w-3 h-3 text-yellow-500 mr-1" />
-                              {Number(providerDetails[solicitacao.providerId].average_rating || providerDetails[solicitacao.providerId].rating).toFixed(1)}
+                              {Number(providerDetails[solicitacao.providerId].average_rating ?? providerDetails[solicitacao.providerId].rating).toFixed(1)}
+                              <span className="ml-1 text-muted-foreground">/5{typeof providerDetails[solicitacao.providerId]?.total_reviews === 'number' ? ` (${providerDetails[solicitacao.providerId].total_reviews} avaliações)` : ''}</span>
                             </span>
                           )}
                         </CardDescription>
@@ -274,10 +289,11 @@ const SolicitacoesCliente = () => {
                             ) }
                           </Avatar>
                           <span>{`Prestador - ${solicitacao.prestador}`}</span>
-                          {(providerDetails[solicitacao.providerId]?.average_rating || providerDetails[solicitacao.providerId]?.rating) && (
+                          {(providerDetails[solicitacao.providerId]?.average_rating ?? providerDetails[solicitacao.providerId]?.rating) !== undefined && (
                             <span className="flex items-center text-xs ml-2"> 
                               <Star className="w-3 h-3 text-yellow-500 mr-1" />
-                              {Number(providerDetails[solicitacao.providerId].average_rating || providerDetails[solicitacao.providerId].rating).toFixed(1)}
+                              {Number(providerDetails[solicitacao.providerId].average_rating ?? providerDetails[solicitacao.providerId].rating).toFixed(1)}
+                              <span className="ml-1 text-muted-foreground">/5{typeof providerDetails[solicitacao.providerId]?.total_reviews === 'number' ? ` (${providerDetails[solicitacao.providerId].total_reviews} avaliações)` : ''}</span>
                             </span>
                           )}
                         </CardDescription>
@@ -296,6 +312,14 @@ const SolicitacoesCliente = () => {
                         <span className="font-semibold">{solicitacao.valor}</span>
                       </div>
                     </div>
+                    {solicitacao.client_rating !== null && (
+                      <div className="mb-4 space-y-1">
+                        {renderStars(solicitacao.client_rating)}
+                        {solicitacao.client_comment && (
+                          <p className="text-xs text-muted-foreground italic line-clamp-2">"{solicitacao.client_comment}"</p>
+                        )}
+                      </div>
+                    )}
                     <div className="flex gap-2">
                       <Button 
                         variant="outline"
@@ -343,10 +367,11 @@ const SolicitacoesCliente = () => {
                             ) }
                           </Avatar>
                           <span>{`Prestador - ${solicitacao.prestador}`}</span>
-                          {(providerDetails[solicitacao.providerId]?.average_rating || providerDetails[solicitacao.providerId]?.rating) && (
+                          {(providerDetails[solicitacao.providerId]?.average_rating ?? providerDetails[solicitacao.providerId]?.rating) !== undefined && (
                             <span className="flex items-center text-xs ml-2"> 
                               <Star className="w-3 h-3 text-yellow-500 mr-1" />
-                              {Number(providerDetails[solicitacao.providerId].average_rating || providerDetails[solicitacao.providerId].rating).toFixed(1)}
+                              {Number(providerDetails[solicitacao.providerId].average_rating ?? providerDetails[solicitacao.providerId].rating).toFixed(1)}
+                              <span className="ml-1 text-muted-foreground">/5{typeof providerDetails[solicitacao.providerId]?.total_reviews === 'number' ? ` (${providerDetails[solicitacao.providerId].total_reviews} avaliações)` : ''}</span>
                             </span>
                           )}
                         </CardDescription>
@@ -439,7 +464,6 @@ const SolicitacoesCliente = () => {
           </DialogContent>
         </Dialog>
       </section>
-
       <Footer />
     </div>
   );
