@@ -1,381 +1,459 @@
-import { useState } from "react";
+import React, { useState, useCallback, forwardRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { Upload, CheckCircle, AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 
-const clienteSchema = z.object({
-  nomeCompleto: z.string()
-    .min(3, "Nome deve ter pelo menos 3 caracteres")
-    .max(100, "Nome deve ter no máximo 100 caracteres")
-    .regex(/^[a-zA-ZÀ-ÿ\s]+$/, "Nome deve conter apenas letras"),
-  email: z.string()
-    .email("Email inválido")
-    .max(255, "Email deve ter no máximo 255 caracteres"),
-  cpf: z.string()
-    .min(11, "CPF inválido")
-    .max(14, "CPF inválido")
-    .regex(/^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/, "CPF deve ter formato válido"),
-  senha: z.string()
-    .min(8, "Senha deve ter pelo menos 8 caracteres")
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, "Senha deve conter ao menos: 1 minúscula, 1 maiúscula, 1 número"),
-  confirmarSenha: z.string(),
-  telefone: z.string()
-    .min(10, "Telefone inválido")
-    .max(15, "Telefone inválido")
-    .regex(/^\(\d{2}\)\s?\d{4,5}-?\d{4}$/, "Telefone deve ter formato válido"),
-  endereco: z.string()
-    .min(10, "Endereço deve ter pelo menos 10 caracteres")
-    .max(500, "Endereço deve ter no máximo 500 caracteres"),
-}).refine((data) => data.senha === data.confirmarSenha, {
-  message: "Senhas não coincidem",
-  path: ["confirmarSenha"],
-});
+// 🎯 Funções de Suporte (Mocks e apiPost) definidas internamente para autocontenção.
+
+/**
+ * Função para fazer a chamada à API com lógica de retentativa e formatação de erro.
+ */
+const apiPost = async (url: string, payload: any, retries = 3, delay = 1000) => {
+    // Detecta se o payload é FormData (para upload de arquivos)
+    const isFormData = payload instanceof FormData;
+    const headers = isFormData ? {} : { 'Content-Type': 'application/json' };
+    const body = isFormData ? payload : JSON.stringify(payload);
+
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: headers,
+                body: body,
+            });
+
+            if (!response.ok) {
+                // 🔍 DIAGNÓSTICO MELHORADO
+                const textBody = await response.text();
+                let errorJson;
+                try {
+                    errorJson = JSON.parse(textBody);
+                } catch {
+                    throw new Error(`Erro Servidor (${response.status}): Verifique o terminal do Backend.`);
+                }
+                
+                throw new Error(JSON.stringify(errorJson)); 
+            }
+
+            return response.json();
+        } catch (error) {
+            if (i === retries - 1) throw error;
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay *= 2; 
+        }
+    }
+};
+
+// --- MOCK DE useNavigate (react-router-dom) ---
+const useNavigate = () => {
+    return (path: string) => console.log(`[NAVIGATE MOCK] Navegando para: ${path}`);
+};
+
+// --- TOAST MOCK ---
+interface ToastProps {
+    title: string;
+    description: string;
+    variant?: "default" | "destructive" | "success";
+}
+
+const useToast = () => {
+    const toast = useCallback(({ title, description, variant = "default" }: ToastProps) => {
+        const icon = variant === "destructive" ? "❌" : variant === "success" ? "✅" : "💡";
+        console.log(`[TOAST MOCK - ${variant.toUpperCase()}] ${icon} ${title}: ${description}`);
+    }, []);
+    return { toast };
+};
+
+// --- COMPONENTES UI MOCK ---
+const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => (
+    <div className={`rounded-xl border bg-card text-card-foreground shadow-lg ${className}`}>{children}</div>
+);
+
+const CardHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <div className="flex flex-col space-y-1.5 p-6">{children}</div>
+);
+
+const CardTitle: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => (
+    <h3 className={`font-semibold tracking-tight text-xl ${className}`}>{children}</h3>
+);
+
+const CardDescription: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <p className="text-sm text-muted-foreground">{children}</p>
+);
+
+const CardContent: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <div className="p-6 pt-0">{children}</div>
+);
+
+const Button: React.FC<{
+    children: React.ReactNode;
+    className?: string;
+    disabled?: boolean;
+    onClick?: () => void;
+    type?: "button" | "submit" | "reset";
+}> = ({ children, className = "", disabled, onClick, type = "button" }) => (
+    <button
+        type={type}
+        onClick={onClick}
+        disabled={disabled}
+        className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${className}`}
+    >
+        {children}
+    </button>
+);
+
+const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement> & { className?: string }>(({ id, type = "text", placeholder, className = "", ...props }, ref) => (
+    <input
+        ref={ref}
+        id={id}
+        type={type}
+        placeholder={placeholder}
+        className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+        {...props}
+    />
+));
+Input.displayName = "Input";
+
+const Textarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement> & { className?: string }>(({ id, placeholder, className = "", rows = 3, ...props }, ref) => (
+    <textarea
+        ref={ref}
+        id={id}
+        rows={rows}
+        placeholder={placeholder}
+        className={`flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+        {...props}
+    />
+));
+Textarea.displayName = "Textarea";
+
+const Label: React.FC<{ htmlFor?: string; children: React.ReactNode }> = ({ htmlFor, children }) => (
+    <label htmlFor={htmlFor} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 block mb-1">
+        {children}
+    </label>
+);
+
+const Alert: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => (
+    <div className={`relative w-full rounded-lg border p-4 [&>svg]:absolute [&>svg]:text-foreground [&>svg]:left-4 [&>svg]:top-4 [&>svg+div]:translate-y-[-3px] ${className}`}>
+        {children}
+    </div>
+);
+
+const AlertDescription: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => (
+    <p className={`text-sm [&:not(:last-child)]:mb-0 pl-7 ${className}`}>{children}</p>
+);
+
+const Header: React.FC = () => (
+    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center justify-between mx-auto px-4">
+            <h1 className="text-xl font-bold text-blue-600">FAZ PRA MIM</h1>
+        </div>
+    </header>
+);
+
+const Footer: React.FC = () => (
+    <footer className="border-t mt-12 py-4">
+        <div className="container mx-auto px-4 text-center text-xs text-gray-500">
+            &copy; {new Date().getFullYear()} FAZ PRA MIM. Todos os direitos reservados.
+        </div>
+    </footer>
+);
+
+// --- ZOD SCHEMA ---
+const clienteSchema = z
+    .object({
+        nomeCompleto: z.string().min(3, "Nome deve ter pelo menos 3 caracteres").max(100).regex(/^[a-zA-ZÀ-ÿ\s]+$/, "Nome deve conter apenas letras"),
+        email: z.string().email("Email inválido").max(255),
+        cpf: z.string().min(11, "CPF inválido").max(14).regex(/^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/, "CPF deve ter formato válido"),
+        senha: z.string().min(8, "Senha deve ter pelo menos 8 caracteres").regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, "Senha deve conter: 1 minúscula, 1 maiúscula, 1 número"),
+        confirmarSenha: z.string(),
+        telefone: z.string().min(10, "Telefone inválido").max(15).regex(/^\(\d{2}\)\s?\d{4,5}-?\d{4}$/, "Telefone deve ter formato válido"),
+        endereco: z.string().min(10, "Endereço deve ter pelo menos 10 caracteres").max(500),
+        cidade: z.string().min(2, "Cidade é obrigatória").max(100),
+        estado: z.string().length(2, "Use a sigla do estado (ex: SP)"),
+    })
+    .refine((data) => data.senha === data.confirmarSenha, { message: "Senhas não coincidem", path: ["confirmarSenha"] });
 
 type ClienteFormData = z.infer<typeof clienteSchema>;
 
-const RegisterCliente = () => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [documento, setDocumento] = useState<File | null>(null);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+// --- COMPONENTE PRINCIPAL ---
+const RegisterCliente: React.FC = () => {
+    const navigate = useNavigate();
+    const { toast } = useToast();
+    const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [documento, setDocumento] = useState<File | null>(null);
+    const [fotoPerfil, setFotoPerfil] = useState<File | null>(null);
+    const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string; } | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    watch,
-  } = useForm<ClienteFormData>({
-    resolver: zodResolver(clienteSchema),
-  });
+    const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm<ClienteFormData>({ resolver: zodResolver(clienteSchema) });
+    const senha = watch("senha");
 
-  const senha = watch("senha");
-  const getPasswordStrength = (password: string) => {
-    if (!password) return { score: 0, text: "", color: "" };
-    let score = 0;
-    if (password.length >= 8) score++;
-    if (/[a-z]/.test(password)) score++;
-    if (/[A-Z]/.test(password)) score++;
-    if (/\d/.test(password)) score++;
-    if (/[^a-zA-Z\d]/.test(password)) score++;
+    const getPasswordStrength = (password: string) => {
+        if (!password) return { score: 0, text: "", color: "" };
+        let score = 0;
+        if (password.length >= 8) score++;
+        if (/[a-z]/.test(password)) score++;
+        if (/[A-Z]/.test(password)) score++;
+        if (/\d/.test(password)) score++;
+        if (/[^a-zA-Z\d]/.test(password)) score++;
+        if (score <= 2) return { score, text: "Fraca", color: "text-red-500" };
+        if (score <= 3) return { score, text: "Média", color: "text-yellow-500" };
+        return { score, text: "Forte", color: "text-green-500" };
+    };
 
-    if (score <= 2) return { score, text: "Fraca", color: "text-destructive" };
-    if (score <= 3) return { score, text: "Média", color: "text-yellow-500" };
-    return { score, text: "Forte", color: "text-accent" };
-  };
+    const passwordStrength = getPasswordStrength(senha || "");
 
-  const passwordStrength = getPasswordStrength(senha || "");
+    const handleDocumentUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                toast({ title: "Arquivo muito grande", description: "Máximo 5MB", variant: "destructive" });
+                return;
+            }
+            setDocumento(file);
+        }
+    };
 
-  const handleDocumentUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "Arquivo muito grande",
-          description: "O arquivo deve ter no máximo 5MB",
-          variant: "destructive",
-        });
-        return;
-      }
-      setDocumento(file);
-    }
-  };
+    const handleFotoPerfilUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                toast({ title: "Arquivo muito grande", description: "Máximo 5MB", variant: "destructive" });
+                return;
+            }
+            if (!file.type.startsWith('image/')) {
+                toast({ title: "Formato inválido", description: "Apenas imagens são aceitas", variant: "destructive" });
+                return;
+            }
+            setFotoPerfil(file);
+        }
+    };
 
-  const onSubmit = async (data: ClienteFormData) => {
-    if (!documento) {
-      setFeedback({
-        type: 'error',
-        message: 'Por favor, envie um documento de identidade.'
-      });
-      return;
-    }
+    const onSubmit = async (data: ClienteFormData) => {
+        if (!documento) {
+            setFeedback({ type: "error", message: "Por favor, envie um documento de identidade. Obrigatório." });
+            return;
+        }
 
-    setIsLoading(true);
-    setFeedback(null);
+        setIsLoading(true);
+        setFeedback(null);
 
-    try {
-      // Simular API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Simular diferentes cenários
-      const scenarios = ['success', 'email_exists', 'cpf_exists'];
-      const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
-      
-      if (scenario === 'email_exists') {
-        setFeedback({
-          type: 'error',
-          message: 'Este e-mail já está cadastrado. Tente fazer login ou use outro e-mail.'
-        });
-      } else if (scenario === 'cpf_exists') {
-        setFeedback({
-          type: 'error',
-          message: 'Este CPF já está cadastrado no sistema.'
-        });
-      } else {
-        setFeedback({
-          type: 'success',
-          message: 'Cadastro realizado com sucesso! Verifique seu e-mail para ativar sua conta.'
-        });
+        const formData = new FormData();
+        formData.append('username', data.email); 
+        formData.append('email', data.email);
+        formData.append('password', data.senha);
         
-        toast({
-          title: "Cadastro realizado!",
-          description: "Bem-vindo ao FAZ PRA MIM. Verifique seu e-mail.",
-        });
+        // 🚨 CORREÇÃO: Adicionando password2 que o backend exige
+        formData.append('password2', data.confirmarSenha);
 
-        setTimeout(() => navigate("/login"), 3000);
-      }
-    } catch (error) {
-      setFeedback({
-        type: 'error',
-        message: 'Erro interno. Tente novamente em alguns minutos.'
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        formData.append('full_name', data.nomeCompleto);
+        formData.append('cpf', data.cpf);
+        formData.append('phone', data.telefone); 
+        formData.append('address', data.endereco);
+        formData.append('city', data.cidade);
+        formData.append('state', data.estado);
+        formData.append('identity_document', documento);
+        if (fotoPerfil) {
+            // backend espera 'profile_photo' field
+            formData.append('profile_photo', fotoPerfil);
+        }
 
-  return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              Cadastro de Cliente
-            </h1>
-            <p className="text-muted-foreground">
-              Preencha os dados para criar sua conta
-            </p>
-          </div>
+        try {
+            const apiUrl = "http://127.0.0.1:8000/api/accounts/register/client/"; 
+            const response = await apiPost(apiUrl, formData);
 
-          <Card className="surface-card">
-            <CardHeader>
-              <CardTitle className="text-xl">Dados Pessoais</CardTitle>
-              <CardDescription>
-                Todas as informações são obrigatórias e serão mantidas em segurança
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                {/* Nome Completo */}
-                <div className="form-field">
-                  <Label htmlFor="nomeCompleto">Nome Completo *</Label>
-                  <Input
-                    id="nomeCompleto"
-                    {...register("nomeCompleto")}
-                    placeholder="Digite seu nome completo"
-                    className={errors.nomeCompleto ? "border-destructive" : ""}
-                  />
-                  {errors.nomeCompleto && (
-                    <p className="text-sm text-destructive">{errors.nomeCompleto.message}</p>
-                  )}
-                </div>
+            toast({ title: "Cadastro realizado!", description: (response as any)?.message || "Sucesso!", variant: "success" });
+            setFeedback({ type: "success", message: "Cadastro realizado com sucesso! Redirecionando..." });
+            setTimeout(() => {
+                window.location.href = "/login";
+            }, 2000); 
+        } catch (error) {
+            let errorMessage = "Erro interno.";
+            if (error instanceof Error) {
+                try {
+                    const errorJson = JSON.parse(error.message);
+                    if (typeof errorJson === 'object' && errorJson !== null) {
+                        const firstKey = Object.keys(errorJson)[0];
+                        const firstMessage = Array.isArray(errorJson[firstKey]) ? errorJson[firstKey][0] : JSON.stringify(errorJson[firstKey]);
+                        errorMessage = `${firstKey.toUpperCase()}: ${firstMessage}`;
+                    } else {
+                        errorMessage = error.message;
+                    }
+                } catch {
+                    errorMessage = error.message;
+                }
+            }
+            setFeedback({ type: "error", message: errorMessage });
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-                {/* Email */}
-                <div className="form-field">
-                  <Label htmlFor="email">E-mail *</Label>
-                  <Input
-                    id="email" 
-                    type="email"
-                    {...register("email")}
-                    placeholder="seu@email.com"
-                    className={errors.email ? "border-destructive" : ""}
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-destructive">{errors.email.message}</p>
-                  )}
-                </div>
+    // Formata telefone enquanto o usuário digita: (DD) 99999-9999 ou (DD) 9999-9999
+    const formatPhone = (value: string) => {
+        if (!value) return "";
+        const digits = String(value).replace(/\D/g, '').slice(0, 11); // limita a 11 dígitos (DDD + 9)
+        if (digits.length === 0) return "";
+        const ddd = digits.slice(0, 2);
+        const rest = digits.slice(2);
+        if (!rest) return `(${ddd}) `;
+        if (rest.length <= 4) return `(${ddd}) ${rest}`;
+        const prefix = rest.slice(0, rest.length - 4);
+        const last4 = rest.slice(-4);
+        return `(${ddd}) ${prefix}-${last4}`;
+    };
 
-                {/* CPF */}
-                <div className="form-field">
-                  <Label htmlFor="cpf">CPF *</Label>
-                  <Input
-                    id="cpf"
-                    {...register("cpf")}
-                    placeholder="123.456.789-00"
-                    className={errors.cpf ? "border-destructive" : ""}
-                  />
-                  {errors.cpf && (
-                    <p className="text-sm text-destructive">{errors.cpf.message}</p>
-                  )}
-                </div>
-
-                {/* Senha */}
-                <div className="form-field">
-                  <Label htmlFor="senha">Senha *</Label>
-                  <div className="relative">
-                    <Input
-                      id="senha"
-                      type={showPassword ? "text" : "password"}
-                      {...register("senha")}
-                      placeholder="Digite uma senha segura"
-                      className={errors.senha ? "border-destructive pr-10" : "pr-10"}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  {senha && (
-                    <div className="flex items-center space-x-2 mt-1">
-                      <div className="flex space-x-1">
-                        {[1, 2, 3, 4].map((i) => (
-                          <div
-                            key={i}
-                            className={`w-2 h-2 rounded-full ${
-                              i <= passwordStrength.score ? "bg-accent" : "bg-muted"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className={`text-xs ${passwordStrength.color}`}>
-                        {passwordStrength.text}
-                      </span>
+    return (
+        <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+            <Header />
+            <main className="container mx-auto px-4 py-8 flex-grow">
+                <div className="max-w-2xl mx-auto">
+                    <div className="text-center mb-8">
+                        <h1 className="text-3xl font-bold text-gray-800 mb-2">Cadastro de Cliente</h1>
+                        <p className="text-gray-500">Preencha os dados para criar sua conta</p>
                     </div>
-                  )}
-                  {errors.senha && (
-                    <p className="text-sm text-destructive">{errors.senha.message}</p>
-                  )}
+                    <Card className="surface-card border-gray-200 bg-white">
+                        <CardHeader>
+                            <CardTitle className="text-2xl text-blue-600">Crie sua Conta</CardTitle>
+                            <CardDescription>Todas as informações são obrigatórias.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
+                                <div>
+                                    <Label htmlFor="nomeCompleto">Nome Completo *</Label>
+                                    <Input id="nomeCompleto" {...register("nomeCompleto")} placeholder="Nome completo" className={errors.nomeCompleto ? "border-red-500" : ""} />
+                                    {errors.nomeCompleto && <p className="text-sm text-red-500 mt-1">{errors.nomeCompleto.message}</p>}
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <Label htmlFor="email">E-mail *</Label>
+                                        <Input id="email" type="email" {...register("email")} placeholder="seu@email.com" className={errors.email ? "border-red-500" : ""} />
+                                        {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>}
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="cpf">CPF *</Label>
+                                        <Input id="cpf" {...register("cpf")} placeholder="000.000.000-00" className={errors.cpf ? "border-red-500" : ""} />
+                                        {errors.cpf && <p className="text-sm text-red-500 mt-1">{errors.cpf.message}</p>}
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <Label htmlFor="senha">Senha *</Label>
+                                        <div className="relative">
+                                            <Input id="senha" type={showPassword ? "text" : "password"} {...register("senha")} placeholder="Senha segura" className={errors.senha ? "border-red-500 pr-10" : "pr-10"} />
+                                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 p-1">
+                                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                            </button>
+                                        </div>
+                                        {senha && (
+                                            <div className="flex items-center space-x-2 mt-2">
+                                                <div className="flex space-x-1">
+                                                    {[1, 2, 3, 4].map((i) => (<div key={i} className={`w-2 h-2 rounded-full ${i <= passwordStrength.score ? passwordStrength.color.replace("text-", "bg-") : "bg-gray-200"}`} />))}
+                                                </div>
+                                                <span className={`text-xs ${passwordStrength.color} font-medium`}>{passwordStrength.text}</span>
+                                            </div>
+                                        )}
+                                        {errors.senha && <p className="text-sm text-red-500 mt-1">{errors.senha.message}</p>}
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="confirmarSenha">Confirmar Senha *</Label>
+                                        <div className="relative">
+                                            <Input id="confirmarSenha" type={showConfirmPassword ? "text" : "password"} {...register("confirmarSenha")} placeholder="Repita a senha" className={errors.confirmarSenha ? "border-red-500 pr-10" : "pr-10"} />
+                                            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 p-1">
+                                                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                            </button>
+                                        </div>
+                                        {errors.confirmarSenha && <p className="text-sm text-red-500 mt-1">{errors.confirmarSenha.message}</p>}
+                                    </div>
+                                </div>
+                                <div>
+                                    <Label htmlFor="telefone">Telefone *</Label>
+                                    {(() => {
+                                        const phoneReg = register("telefone");
+                                        return (
+                                            <Input
+                                                id="telefone"
+                                                {...phoneReg}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                    const raw = e.target.value;
+                                                    const formatted = formatPhone(raw);
+                                                    e.target.value = formatted;
+                                                    if (phoneReg.onChange) phoneReg.onChange(e);
+                                                    setValue('telefone', formatted, { shouldValidate: true, shouldDirty: true });
+                                                }}
+                                                placeholder="(11) 99999-9999"
+                                                className={errors.telefone ? "border-red-500" : ""}
+                                            />
+                                        );
+                                    })()}
+                                    {errors.telefone && <p className="text-sm text-red-500 mt-1">{errors.telefone.message}</p>}
+                                </div>
+                                                        <div>
+                                                            <Label htmlFor="endereco">Endereço Completo *</Label>
+                                                            <Textarea id="endereco" {...register("endereco")} placeholder="Rua, número, bairro..." className={errors.endereco ? "border-red-500" : ""} rows={3} />
+                                                            {errors.endereco && <p className="text-sm text-red-500 mt-1">{errors.endereco.message}</p>}
+                                                        </div>
+
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            <div>
+                                                                <Label htmlFor="cidade">Cidade *</Label>
+                                                                <Input id="cidade" {...register("cidade")} placeholder="Sua cidade" className={errors.cidade ? "border-red-500" : ""} />
+                                                                {errors.cidade && <p className="text-sm text-red-500 mt-1">{errors.cidade.message}</p>}
+                                                            </div>
+                                                            <div>
+                                                                <Label htmlFor="estado">Estado (sigla) *</Label>
+                                                                <Input id="estado" maxLength={2} {...register("estado")} placeholder="SP" className={errors.estado ? "border-red-500" : ""} />
+                                                                {errors.estado && <p className="text-sm text-red-500 mt-1">{errors.estado.message}</p>}
+                                                            </div>
+                                                        </div>
+                                <div>
+                                    <Label>Foto de Perfil</Label>
+                                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors bg-gray-50">
+                                        <input type="file" id="fotoPerfil" accept="image/*" onChange={handleFotoPerfilUpload} className="hidden" />
+                                        <label htmlFor="fotoPerfil" className="cursor-pointer block">
+                                            <div className="flex flex-col items-center space-y-2">
+                                                {fotoPerfil ? <CheckCircle className="w-8 h-8 text-green-500" /> : <Upload className="w-8 h-8 text-gray-400" />}
+                                                <p className={`text-sm font-medium ${fotoPerfil ? "text-green-600" : "text-gray-700"}`}>{fotoPerfil ? `Selecionado: ${fotoPerfil.name}` : "Clique para enviar sua foto"}</p>
+                                                <p className="text-xs text-gray-500">JPG ou PNG até 5MB</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div>
+                                    <Label>Documento de Identidade *</Label>
+                                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors bg-gray-50">
+                                        <input type="file" id="documento" accept=".pdf,.jpg,.jpeg,.png" onChange={handleDocumentUpload} className="hidden" />
+                                        <label htmlFor="documento" className="cursor-pointer block">
+                                            <div className="flex flex-col items-center space-y-2">
+                                                {documento ? <CheckCircle className="w-8 h-8 text-green-500" /> : <Upload className="w-8 h-8 text-gray-400" />}
+                                                <p className={`text-sm font-medium ${documento ? "text-green-600" : "text-gray-700"}`}>{documento ? `Selecionado: ${documento.name}` : "Clique para enviar RG/CNH"}</p>
+                                                <p className="text-xs text-gray-500">PDF, JPG ou PNG até 5MB</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                {feedback && (
+                                    <Alert className={feedback.type === "success" ? "border-green-400 bg-green-50" : "border-red-400 bg-red-50"}>
+                                        {feedback.type === "success" ? <CheckCircle className="h-4 w-4 text-green-600" /> : <AlertCircle className="h-4 w-4 text-red-600" />}
+                                        <AlertDescription className={feedback.type === "success" ? "text-green-700" : "text-red-700"}>{feedback.message}</AlertDescription>
+                                    </Alert>
+                                )}
+                                <Button type="submit" className="w-full bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-md" disabled={isLoading}>
+                                    {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Cadastrando...</> : "Enviar Cadastro"}
+                                </Button>
+                            </form>
+                        </CardContent>
+                    </Card>
+                    <div className="text-center mt-8">
+                        <p className="text-gray-500">Já tem uma conta? <button onClick={() => navigate("/login")} className="text-blue-600 hover:text-blue-700 hover:underline font-semibold">Faça login aqui</button></p>
+                    </div>
                 </div>
-
-                {/* Confirmar Senha */}
-                <div className="form-field">
-                  <Label htmlFor="confirmarSenha">Confirmar Senha *</Label>
-                  <div className="relative">
-                    <Input
-                      id="confirmarSenha"
-                      type={showConfirmPassword ? "text" : "password"}
-                      {...register("confirmarSenha")}
-                      placeholder="Digite a senha novamente"
-                      className={errors.confirmarSenha ? "border-destructive pr-10" : "pr-10"}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  {errors.confirmarSenha && (
-                    <p className="text-sm text-destructive">{errors.confirmarSenha.message}</p>
-                  )}
-                </div>
-
-                {/* Telefone */}
-                <div className="form-field">
-                  <Label htmlFor="telefone">Telefone *</Label>
-                  <Input
-                    id="telefone"
-                    {...register("telefone")}
-                    placeholder="(11) 99999-9999"
-                    className={errors.telefone ? "border-destructive" : ""}
-                  />
-                  {errors.telefone && (
-                    <p className="text-sm text-destructive">{errors.telefone.message}</p>
-                  )}
-                </div>
-
-                {/* Endereço */}
-                <div className="form-field">
-                  <Label htmlFor="endereco">Endereço Completo *</Label>
-                  <Textarea
-                    id="endereco"
-                    {...register("endereco")}
-                    placeholder="Rua, número, bairro, cidade, CEP"
-                    className={errors.endereco ? "border-destructive" : ""}
-                    rows={3}
-                  />
-                  {errors.endereco && (
-                    <p className="text-sm text-destructive">{errors.endereco.message}</p>
-                  )}
-                </div>
-
-                {/* Upload de Documento */}
-                <div className="form-field">
-                  <Label>Documento de Identidade *</Label>
-                  <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors">
-                    <input
-                      type="file"
-                      id="documento"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={handleDocumentUpload}
-                      className="hidden"
-                    />
-                    <label htmlFor="documento" className="cursor-pointer">
-                      <div className="flex flex-col items-center space-y-2">
-                        <Upload className="w-8 h-8 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                          {documento ? documento.name : "Clique para enviar RG, CNH ou Passaporte"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          PDF, JPG ou PNG até 5MB
-                        </p>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Feedback Messages */}
-                {feedback && (
-                  <Alert className={feedback.type === 'success' ? "border-accent" : "border-destructive"}>
-                    {feedback.type === 'success' ? (
-                      <CheckCircle className="h-4 w-4 text-accent" />
-                    ) : (
-                      <AlertCircle className="h-4 w-4 text-destructive" />
-                    )}
-                    <AlertDescription className={feedback.type === 'success' ? "text-accent" : "text-destructive"}>
-                      {feedback.message}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {/* Submit Button */}
-                <Button 
-                  type="submit" 
-                  className="w-full bg-primary hover:bg-primary-hover" 
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Cadastrando..." : "Enviar Cadastro"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-
-          <div className="text-center mt-8">
-            <p className="text-muted-foreground">
-              Já tem uma conta?{" "}
-              <button 
-                onClick={() => navigate("/login")}
-                className="text-primary hover:underline font-semibold"
-              >
-                Faça login aqui
-              </button>
-            </p>
-          </div>
+            </main>
+            <Footer />
         </div>
-      </main>
-      
-      <Footer />
-    </div>
-  );
+    );
 };
 
 export default RegisterCliente;

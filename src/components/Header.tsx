@@ -1,9 +1,16 @@
 import { Button } from "@/components/ui/button";
-import { UserPlus } from "lucide-react";
+import { UserPlus, LogOut, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 const Header = () => {
   const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
 
   return (
     <header className="bg-card border-b border-border sticky top-0 z-50 backdrop-blur-sm bg-card/95">
@@ -28,21 +35,45 @@ const Header = () => {
           >
             Buscar Prestadores
           </Button>
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate("/login")}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            Entrar
-          </Button>
-          <Button 
-            variant="default" 
-            onClick={() => navigate("/register")}
-            className="bg-primary hover:bg-primary-hover"
-          >
-            <UserPlus className="w-4 h-4 mr-2" />
-            Cadastrar
-          </Button>
+          
+          {isAuthenticated ? (
+            <>
+              <Button 
+                variant="ghost" 
+                onClick={() => navigate(user?.tipo === 'prestador' ? "/perfil-prestador" : "/perfil-cliente")}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <User className="w-4 h-4 mr-2" />
+                {user?.nome}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={handleLogout}
+                className="border-border hover:bg-muted"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sair
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button 
+                variant="ghost" 
+                onClick={() => navigate("/login")}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                Entrar
+              </Button>
+              <Button 
+                variant="default" 
+                onClick={() => navigate("/register")}
+                className="bg-primary hover:bg-primary-hover"
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Cadastrar
+              </Button>
+            </>
+          )}
         </nav>
       </div>
     </header>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,11 +8,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, CheckCircle, AlertCircle, Eye, EyeOff, Briefcase } from "lucide-react";
+import { Upload, CheckCircle, AlertCircle, Eye, EyeOff, Briefcase, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+
+// 🎯 Função de API Integrada
+const apiPost = async (url: string, payload: any) => {
+    // Se for FormData, o browser define o Content-Type automaticamente
+    const isFormData = payload instanceof FormData;
+    const headers = isFormData ? {} : { 'Content-Type': 'application/json' };
+    const body = isFormData ? payload : JSON.stringify(payload);
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: headers,
+        body: body,
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({ message: 'Erro desconhecido na requisição' }));
+        // Lança string JSON para ser parseada no catch
+        throw new Error(JSON.stringify(errorBody)); 
+    }
+
+    return response.json();
+};
 
 const prestadorSchema = z.object({
   nomeCompleto: z.string()
@@ -33,6 +55,8 @@ const prestadorSchema = z.object({
   endereco: z.string()
     .min(10, "Endereço deve ter pelo menos 10 caracteres")
     .max(500, "Endereço deve ter no máximo 500 caracteres"),
+  cidade: z.string().min(2, "Cidade é obrigatória").max(100),
+  estado: z.string().length(2, "Use a sigla do estado (ex: SP)"),
   qualificacaoTecnica: z.string()
     .min(20, "Descreva sua qualificação técnica (mínimo 20 caracteres)")
     .max(1000, "Qualificação técnica deve ter no máximo 1000 caracteres"),
@@ -49,8 +73,12 @@ const RegisterPrestador = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Estados para arquivos
   const [documento, setDocumento] = useState<File | null>(null);
   const [certificacoes, setCertificacoes] = useState<File | null>(null);
+  const [fotoPerfil, setFotoPerfil] = useState<File | null>(null);
+  
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   const {
@@ -58,6 +86,7 @@ const RegisterPrestador = () => {
     handleSubmit,
     formState: { errors },
     watch,
+    setValue,
   } = useForm<PrestadorFormData>({
     resolver: zodResolver(prestadorSchema),
   });
@@ -74,10 +103,24 @@ const RegisterPrestador = () => {
 
     if (score <= 2) return { score, text: "Fraca", color: "text-destructive" };
     if (score <= 3) return { score, text: "Média", color: "text-yellow-500" };
-    return { score, text: "Forte", color: "text-accent" };
+    return { score, text: "Forte", color: "text-green-600" }; // Ajustei para verde para ficar consistente
   };
 
   const passwordStrength = getPasswordStrength(senha || "");
+
+  // Formata telefone enquanto o usuário digita: (DD) 99999-9999 ou (DD) 9999-9999
+  const formatPhone = (value: string) => {
+    if (!value) return "";
+    const digits = String(value).replace(/\D/g, '').slice(0, 11);
+    if (digits.length === 0) return "";
+    const ddd = digits.slice(0, 2);
+    const rest = digits.slice(2);
+    if (!rest) return `(${ddd}) `;
+    if (rest.length <= 4) return `(${ddd}) ${rest}`;
+    const prefix = rest.slice(0, rest.length - 4);
+    const last4 = rest.slice(-4);
+    return `(${ddd}) ${prefix}-${last4}`;
+  };
 
   const handleDocumentUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -109,7 +152,31 @@ const RegisterPrestador = () => {
     }
   };
 
+  const handleFotoPerfilUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Arquivo muito grande",
+          description: "O arquivo deve ter no máximo 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Formato inválido",
+          description: "Apenas imagens são aceitas",
+          variant: "destructive",
+        });
+        return;
+      }
+      setFotoPerfil(file);
+    }
+  };
+
   const onSubmit = async (data: PrestadorFormData) => {
+    // Validação de arquivos obrigatórios
     if (!documento) {
       setFeedback({
         type: 'error',
@@ -117,40 +184,95 @@ const RegisterPrestador = () => {
       });
       return;
     }
+    // Nota: Certificações são opcionais no model do Django (blank=True), 
+    // mas se quiser obrigar, descomente abaixo:
+    /*
+    if (!certificacoes) {
+        setFeedback({ type: 'error', message: 'Envie suas certificações.' });
+        return;
+    }
+    */
 
     setIsLoading(true);
     setFeedback(null);
 
-    try {
-      // Simular API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Simular diferentes cenários
-      const scenarios = ['success', 'email_exists'];
-      const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
-      
-      if (scenario === 'email_exists') {
-        setFeedback({
-          type: 'error',
-          message: 'Este e-mail já está cadastrado. Tente fazer login ou use outro e-mail.'
-        });
-      } else {
-        setFeedback({
-          type: 'success',
-          message: 'Cadastro realizado com sucesso! Seu perfil será analisado em até 24 horas.'
-        });
-        
-        toast({
-          title: "Cadastro realizado!",
-          description: "Bem-vindo como prestador ao FAZ PRA MIM.",
-        });
+    // 🔹 CONSTRUINDO O FORMDATA PARA O BACKEND
+    const formData = new FormData();
+    
+    // Campos do User (Auth)
+    formData.append("username", data.email); 
+    formData.append("email", data.email);
+    formData.append("password", data.senha);
+    formData.append("password2", data.confirmarSenha);
 
-        setTimeout(() => navigate("/login"), 3000);
+    // Campos do ProviderProfile (Mapeando do seu form para o backend)
+    formData.append("full_name", data.nomeCompleto);
+    // Backend exige professional_email, usamos o mesmo do login por enquanto
+    formData.append("professional_email", data.email); 
+    formData.append("service_address", data.endereco);
+    formData.append("technical_qualification", data.qualificacaoTecnica);
+    formData.append("city", data.cidade);
+    formData.append("state", data.estado);
+    
+    // Nota: O backend ProviderProfile atual não tem campo 'phone'. 
+    // Se quiser salvar o telefone, precisaremos adicionar esse campo ao modelo ProviderProfile no Django.
+    // Por enquanto, ele será ignorado pelo backend, mas enviamos caso adicione depois.
+    formData.append("phone", data.telefone);
+
+    // Arquivos (Nomes devem bater com ProviderRegisterSerializer)
+    if (documento) formData.append("identity_document", documento);
+    if (certificacoes) formData.append("certifications", certificacoes);
+    if (fotoPerfil) formData.append("profile_photo", fotoPerfil);
+
+    try {
+      const apiUrl = "http://127.0.0.1:8000/api/accounts/register/provider/";
+      
+      const response = await apiPost(apiUrl, formData);
+
+      // Armazenar token, user e provider_profile no localStorage
+      if ((response as any).token) {
+        localStorage.setItem('token', (response as any).token);
       }
-    } catch (error) {
+      if ((response as any).user) {
+        localStorage.setItem('user', JSON.stringify((response as any).user));
+      }
+      if ((response as any).provider_profile) {
+        localStorage.setItem('provider_profile', JSON.stringify((response as any).provider_profile));
+      }
+
+      toast({
+        title: "Cadastro realizado!",
+        description: (response as any)?.message || "Bem-vindo como prestador ao FAZ PRA MIM.",
+      });
+
+      setFeedback({
+        type: 'success',
+        message: 'Cadastro realizado com sucesso! Você será redirecionado para o login.'
+      });
+
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 2000);
+
+    } catch (error: any) {
+      let errorMessage = 'Erro interno. Tente novamente.';
+      try {
+          // Tenta ler o erro estruturado do Django
+          const json = JSON.parse(error.message);
+          if (typeof json === 'object' && json !== null) {
+              const key = Object.keys(json)[0];
+              const msg = Array.isArray(json[key]) ? json[key][0] : json[key];
+              errorMessage = `${key.toUpperCase()}: ${msg}`;
+          } else {
+              errorMessage = error.message;
+          }
+      } catch {
+          errorMessage = error.message;
+      }
+
       setFeedback({
         type: 'error',
-        message: 'Erro interno. Tente novamente em alguns minutos.'
+        message: errorMessage
       });
     } finally {
       setIsLoading(false);
@@ -281,12 +403,24 @@ const RegisterPrestador = () => {
                 {/* Telefone */}
                 <div className="form-field">
                   <Label htmlFor="telefone">Telefone *</Label>
-                  <Input
-                    id="telefone"
-                    {...register("telefone")}
-                    placeholder="(11) 99999-9999"
-                    className={errors.telefone ? "border-destructive" : ""}
-                  />
+                  {(() => {
+                    const phoneReg = register("telefone");
+                    return (
+                      <Input
+                        id="telefone"
+                        {...phoneReg}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const raw = e.target.value;
+                          const formatted = formatPhone(raw);
+                          e.target.value = formatted;
+                          if (phoneReg.onChange) phoneReg.onChange(e);
+                          setValue('telefone', formatted, { shouldValidate: true, shouldDirty: true });
+                        }}
+                        placeholder="(11) 99999-9999"
+                        className={errors.telefone ? "border-destructive" : ""}
+                      />
+                    );
+                  })()}
                   {errors.telefone && (
                     <p className="text-sm text-destructive">{errors.telefone.message}</p>
                   )}
@@ -307,6 +441,19 @@ const RegisterPrestador = () => {
                   )}
                 </div>
 
+                <div className="form-field grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="cidade">Cidade *</Label>
+                    <Input id="cidade" {...register("cidade")} placeholder="Sua cidade" className={errors.cidade ? "border-destructive" : ""} />
+                    {errors.cidade && <p className="text-sm text-destructive">{errors.cidade.message}</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="estado">Estado (sigla) *</Label>
+                    <Input id="estado" maxLength={2} {...register("estado")} placeholder="SP" className={errors.estado ? "border-destructive" : ""} />
+                    {errors.estado && <p className="text-sm text-destructive">{errors.estado.message}</p>}
+                  </div>
+                </div>
+
                 {/* Qualificação Técnica */}
                 <div className="form-field">
                   <Label htmlFor="qualificacaoTecnica">Qualificação Técnica *</Label>
@@ -325,6 +472,44 @@ const RegisterPrestador = () => {
                   )}
                 </div>
 
+                {/* Upload de Foto de Perfil */}
+                <div className="form-field">
+                  <Label>Foto de Perfil</Label>
+                  <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors">
+                    <input
+                      type="file"
+                      id="fotoPerfil"
+                      accept="image/*"
+                      onChange={handleFotoPerfilUpload}
+                      className="hidden"
+                    />
+                    <label htmlFor="fotoPerfil" className="cursor-pointer block">
+                      <div className="flex flex-col items-center space-y-2">
+                        {fotoPerfil ? (
+                          <CheckCircle className="w-8 h-8 text-green-500" />
+                        ) : (
+                          <Upload className="w-8 h-8 text-muted-foreground" />
+                        )}
+                        <p
+                          className={`text-sm font-medium ${
+                            fotoPerfil ? "text-green-600" : "text-muted-foreground"
+                          }`}
+                        >
+                          {fotoPerfil
+                            ? `Foto selecionada: ${fotoPerfil.name}`
+                            : "Clique para enviar sua foto"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          JPG ou PNG até 5MB
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Uma foto profissional aumenta sua credibilidade
+                  </p>
+                </div>
+
                 {/* Upload de Documento */}
                 <div className="form-field">
                   <Label>Documento de Identidade *</Label>
@@ -336,11 +521,21 @@ const RegisterPrestador = () => {
                       onChange={handleDocumentUpload}
                       className="hidden"
                     />
-                    <label htmlFor="documento" className="cursor-pointer">
+                    <label htmlFor="documento" className="cursor-pointer block">
                       <div className="flex flex-col items-center space-y-2">
-                        <Upload className="w-8 h-8 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                          {documento ? documento.name : "Clique para enviar RG, CNH ou Passaporte"}
+                        {documento ? (
+                          <CheckCircle className="w-8 h-8 text-green-500" />
+                        ) : (
+                          <Upload className="w-8 h-8 text-muted-foreground" />
+                        )}
+                        <p
+                          className={`text-sm font-medium ${
+                            documento ? "text-green-600" : "text-muted-foreground"
+                          }`}
+                        >
+                          {documento
+                            ? `Documento selecionado: ${documento.name}`
+                            : "Clique para enviar RG, CNH ou Passaporte"}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           PDF, JPG ou PNG até 5MB
@@ -350,9 +545,9 @@ const RegisterPrestador = () => {
                   </div>
                 </div>
 
-                {/* Upload de Certificações (Opcional) */}
+                {/* Upload de Certificações */}
                 <div className="form-field">
-                  <Label>Certificações ou Currículo (Opcional)</Label>
+                  <Label>Certificações ou Currículo</Label>
                   <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors">
                     <input
                       type="file"
@@ -361,11 +556,21 @@ const RegisterPrestador = () => {
                       onChange={handleCertificacoesUpload}
                       className="hidden"
                     />
-                    <label htmlFor="certificacoes" className="cursor-pointer">
+                    <label htmlFor="certificacoes" className="cursor-pointer block">
                       <div className="flex flex-col items-center space-y-2">
-                        <Upload className="w-8 h-8 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                          {certificacoes ? certificacoes.name : "Adicione certificados, diplomas ou currículo"}
+                        {certificacoes ? (
+                          <CheckCircle className="w-8 h-8 text-green-500" />
+                        ) : (
+                          <Upload className="w-8 h-8 text-muted-foreground" />
+                        )}
+                        <p
+                          className={`text-sm font-medium ${
+                            certificacoes ? "text-green-600" : "text-muted-foreground"
+                          }`}
+                        >
+                          {certificacoes
+                            ? `Arquivo selecionado: ${certificacoes.name}`
+                            : "Adicione certificados, diplomas ou currículo"}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           PDF, DOC, JPG ou PNG até 10MB
@@ -380,25 +585,43 @@ const RegisterPrestador = () => {
 
                 {/* Feedback Messages */}
                 {feedback && (
-                  <Alert className={feedback.type === 'success' ? "border-accent" : "border-destructive"}>
+                  <Alert
+                    className={
+                      feedback.type === 'success'
+                        ? "border-green-500 bg-green-50"
+                        : "border-destructive bg-red-50"
+                    }
+                  >
                     {feedback.type === 'success' ? (
-                      <CheckCircle className="h-4 w-4 text-accent" />
+                      <CheckCircle className="h-4 w-4 text-green-600" />
                     ) : (
                       <AlertCircle className="h-4 w-4 text-destructive" />
                     )}
-                    <AlertDescription className={feedback.type === 'success' ? "text-accent" : "text-destructive"}>
+                    <AlertDescription
+                      className={
+                        feedback.type === 'success'
+                          ? "text-green-700"
+                          : "text-destructive"
+                      }
+                    >
                       {feedback.message}
                     </AlertDescription>
                   </Alert>
                 )}
 
                 {/* Submit Button */}
-                <Button 
-                  type="submit" 
-                  className="w-full bg-accent hover:bg-accent-hover" 
+                <Button
+                  type="submit"
+                  className="w-full bg-accent hover:bg-accent-hover"
                   disabled={isLoading}
                 >
-                  {isLoading ? "Cadastrando..." : "Enviar Cadastro"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Cadastrando...
+                    </>
+                  ) : (
+                    "Enviar Cadastro"
+                  )}
                 </Button>
               </form>
             </CardContent>
@@ -407,7 +630,7 @@ const RegisterPrestador = () => {
           <div className="text-center mt-8">
             <p className="text-muted-foreground">
               Já tem uma conta?{" "}
-              <button 
+              <button
                 onClick={() => navigate("/login")}
                 className="text-primary hover:underline font-semibold"
               >
