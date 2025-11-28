@@ -421,36 +421,6 @@ const PerfilCliente = () => {
             </CardContent>
           </Card>
 
-          {/* Estatísticas */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-primary">0</p>
-                  <p className="text-sm text-muted-foreground mt-1">Serviços Solicitados</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-accent">0</p>
-                  <p className="text-sm text-muted-foreground mt-1">Serviços em Andamento</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-green-600">0</p>
-                  <p className="text-sm text-muted-foreground mt-1">Serviços Concluídos</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
           {/* Ações Rápidas */}
           <Card>
             <CardHeader>

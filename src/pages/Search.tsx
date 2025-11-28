@@ -33,6 +33,10 @@ const Search = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Estados dos filtros
+  const [locationFilter, setLocationFilter] = useState("");
+  const [minRatingFilter, setMinRatingFilter] = useState("");
 
   // 🎯 Função para buscar prestadores na API Real
   const fetchProviders = async (term = "") => {
@@ -77,7 +81,24 @@ const Search = () => {
           }
         })
       );
-      setProviders(enriched);
+      
+      // 🎯 Aplicar filtros locais
+      let filtered = enriched;
+      
+      // Filtro por cidade
+      if (locationFilter.trim()) {
+        filtered = filtered.filter(p => 
+          p.service_address?.toLowerCase().includes(locationFilter.toLowerCase())
+        );
+      }
+      
+      // Filtro por avaliação mínima
+      if (minRatingFilter) {
+        const minRating = parseFloat(minRatingFilter);
+        filtered = filtered.filter(p => (p.average_rating ?? 0) >= minRating);
+      }
+      
+      setProviders(filtered);
       
     } catch (err) {
       console.error(err);
@@ -94,6 +115,18 @@ const Search = () => {
 
   // Handler de busca
   const handleSearch = () => {
+    fetchProviders(searchTerm);
+  };
+  
+  // Handler para aplicar filtros
+  const handleApplyFilters = () => {
+    fetchProviders(searchTerm);
+  };
+  
+  // Handler para limpar filtros
+  const handleClearFilters = () => {
+    setLocationFilter("");
+    setMinRatingFilter("");
     fetchProviders(searchTerm);
   };
 
@@ -171,30 +204,50 @@ const Search = () => {
           </div>
         </div>
 
-        {/* Filter Panel (Visual apenas por enquanto) */}
+        {/* Filter Panel */}
         {showFilters && (
           <Card className="surface-card mb-8 max-w-4xl mx-auto">
             <CardContent className="p-6">
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium mb-2 block">Localização</label>
-                  <Input placeholder="Cidade ou CEP" />
+                  <Input 
+                    placeholder="Cidade" 
+                    value={locationFilter}
+                    onChange={(e) => setLocationFilter(e.target.value)}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-2 block">Avaliação Mínima</label>
-                  <select className="w-full p-2 border border-input rounded-lg bg-background">
+                  <select 
+                    className="w-full p-2 border border-input rounded-lg bg-background"
+                    value={minRatingFilter}
+                    onChange={(e) => setMinRatingFilter(e.target.value)}
+                  >
                     <option value="">Qualquer avaliação</option>
+                    <option value="5">5 estrelas</option>
                     <option value="4">4+ estrelas</option>
+                    <option value="3">3+ estrelas</option>
+                    <option value="2">2+ estrelas</option>
+                    <option value="1">1+ estrelas</option>
                   </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Preço Máximo</label>
-                  <Input placeholder="R$ 100/hora" />
                 </div>
               </div>
               <div className="flex gap-4 mt-4">
-                <Button variant="outline" size="sm">Limpar Filtros</Button>
-                <Button size="sm" className="bg-accent hover:bg-accent-hover">Aplicar</Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleClearFilters}
+                >
+                  Limpar Filtros
+                </Button>
+                <Button 
+                  size="sm" 
+                  className="bg-accent hover:bg-accent-hover"
+                  onClick={handleApplyFilters}
+                >
+                  Aplicar
+                </Button>
               </div>
             </CardContent>
           </Card>
