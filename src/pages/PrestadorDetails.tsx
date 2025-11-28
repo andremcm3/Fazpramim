@@ -229,7 +229,14 @@ const PrestadorDetails = () => {
                   <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                     <Button 
                       size="lg" 
-                      onClick={() => navigate(`/solicitar/${provider.id}`)}
+                      onClick={() => {
+                        const token = localStorage.getItem('token');
+                        if (!token) {
+                          navigate('/login');
+                        } else {
+                          navigate(`/solicitar/${provider.id}`);
+                        }
+                      }}
                       className="bg-blue-600 hover:bg-blue-700 shadow-md"
                     >
                       Solicitar Serviço
