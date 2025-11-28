@@ -5,7 +5,7 @@ pages:
   script:
     - npm install
     - npm run build
-    - mv build public
+    - mv dist public
   artifacts:
     paths:
       - public
