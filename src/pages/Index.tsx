@@ -23,7 +23,7 @@ const ProviderRequestsPanel: React.FC<{ providerId?: string | null }> = ({ provi
     setError(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://127.0.0.1:8000/api/accounts/providers/${providerId}/requests/`, {
+      const res = await fetch(`https://fazpramim-back.onrender.com/api/accounts/providers/${providerId}/requests/`, {
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Token ${token}` } : {}),
@@ -63,9 +63,9 @@ const ProviderRequestsPanel: React.FC<{ providerId?: string | null }> = ({ provi
   const patchRequestEndpoint = async (requestId: any, body: any) => {
     const token = localStorage.getItem('token');
     const endpoints = [
-      `http://127.0.0.1:8000/api/accounts/requests/${requestId}/`,
-      `http://127.0.0.1:8000/api/requests/${requestId}/`,
-      `http://127.0.0.1:8000/api/requests/${requestId}/update/`,
+      `https://fazpramim-back.onrender.com/api/accounts/requests/${requestId}/`,
+      `https://fazpramim-back.onrender.com/api/requests/${requestId}/`,
+      `https://fazpramim-back.onrender.com/api/requests/${requestId}/update/`,
     ];
     for (const url of endpoints) {
       try {

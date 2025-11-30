@@ -30,7 +30,7 @@ const SolicitacoesCliente = () => {
     const fetchSolicitacoes = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://127.0.0.1:8000/api/accounts/client/requests/', {
+        const response = await fetch('https://fazpramim-back.onrender.com/api/accounts/client/requests/', {
           headers: {
             'Authorization': `Token ${token}`
           }

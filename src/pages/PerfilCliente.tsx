@@ -82,7 +82,7 @@ const PerfilCliente = () => {
         const clientId = userData?.id || userData?.pk || userData?.user_id || (user && (user.id || user.pk));
 
         if (clientId && token) {
-          const resp = await fetch(`http://127.0.0.1:8000/api/accounts/clients/${clientId}/`, {
+          const resp = await fetch(`https://fazpramim-back.onrender.com/api/accounts/clients/${clientId}/`, {
             method: 'GET',
             headers: {
               'Authorization': `Token ${token}`,
@@ -185,7 +185,7 @@ const PerfilCliente = () => {
             formData.append('profile_photo', fileInput.files[0], 'profile.jpg');
           }
 
-          const resp = await fetch(`http://127.0.0.1:8000/api/accounts/clients/${clientId}/`, {
+          const resp = await fetch(`https://fazpramim-back.onrender.com/api/accounts/clients/${clientId}/`, {
             method: 'PATCH',
             headers: {
               'Authorization': `Token ${token}`,
@@ -207,7 +207,7 @@ const PerfilCliente = () => {
           }
 
           // Se salvou com sucesso, buscar dados atualizados do backend
-          const getRespData = await fetch(`http://127.0.0.1:8000/api/accounts/clients/${clientId}/`, {
+          const getRespData = await fetch(`https://fazpramim-back.onrender.com/api/accounts/clients/${clientId}/`, {
             method: 'GET',
             headers: {
               'Authorization': `Token ${token}`,

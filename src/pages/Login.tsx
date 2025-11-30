@@ -77,7 +77,7 @@ const Login = () => {
     };
 
     try {
-      const apiUrl = "http://127.0.0.1:8000/api/accounts/login/";
+      const apiUrl = "https://fazpramim-back.onrender.com/api/accounts/login/";
       
       const response = await apiPost(apiUrl, apiPayload);
 

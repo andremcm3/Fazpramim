@@ -120,7 +120,7 @@ const PerfilPrestador = () => {
       try {
         const token = localStorage.getItem('token');
         if (token) {
-          const resp = await fetch('http://127.0.0.1:8000/api/accounts/providers-edit/', {
+          const resp = await fetch('https://fazpramim-back.onrender.com/api/accounts/providers-edit/', {
             method: 'GET',
             headers: {
               'Authorization': `Token ${token}`,
@@ -277,7 +277,7 @@ const PerfilPrestador = () => {
             formData.append('profile_photo', blob, 'profile.jpg');
           }
 
-          const resp = await fetch(`http://127.0.0.1:8000/api/accounts/providers-edit/`, {
+          const resp = await fetch(`https://fazpramim-back.onrender.com/api/accounts/providers-edit/`, {
             method: 'PATCH',
             headers: {
               'Authorization': `Token ${token}`,
@@ -557,7 +557,7 @@ const PerfilPrestador = () => {
                   certificacoes.map((url, idx) => (
                     <div key={idx} className="flex items-center justify-between">
                       <a
-                        href={url.startsWith('http') ? url : `http://127.0.0.1:8000${url}`}
+                        href={url.startsWith('http') ? url : `https://fazpramim-back.onrender.com${url}`}
                         target="_blank"
                         rel="noreferrer"
                         className="text-primary hover:underline text-sm truncate max-w-[70%]"
@@ -618,7 +618,7 @@ const PerfilPrestador = () => {
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {portfolioPhotos.slice(0, 8).map((photo) => {
-                    const photoUrl = photo.photo.startsWith('http') ? photo.photo : `http://127.0.0.1:8000${photo.photo}`;
+                    const photoUrl = photo.photo.startsWith('http') ? photo.photo : `https://fazpramim-back.onrender.com${photo.photo}`;
                     return (
                       <div key={photo.id} className="group relative aspect-square bg-gray-100 rounded-lg overflow-hidden border hover:border-primary transition-colors">
                         <img

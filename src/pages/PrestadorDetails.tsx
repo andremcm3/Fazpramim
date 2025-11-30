@@ -100,7 +100,7 @@ const PrestadorDetails = () => {
       if (!id) return;
       setLoading(true);
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/accounts/providers/${id}/`);
+        const res = await fetch(`https://fazpramim-back.onrender.com/api/accounts/providers/${id}/`);
         
         if (!res.ok) {
             if (res.status === 404) throw new Error("Prestador não encontrado.");
@@ -122,7 +122,7 @@ const PrestadorDetails = () => {
   const getPhotoUrl = (path: string | null) => {
     if (!path) return undefined;
     if (path.startsWith("http")) return path;
-    return `http://127.0.0.1:8000${path}`;
+    return `https://fazpramim-back.onrender.com${path}`;
   };
 
   const getCertUrl = (item: any) => {

@@ -258,7 +258,7 @@ const RegisterCliente: React.FC = () => {
         }
 
         try {
-            const apiUrl = "http://127.0.0.1:8000/api/accounts/register/client/"; 
+            const apiUrl = "https://fazpramim-back.onrender.com/api/accounts/register/client/"; 
             const response = await apiPost(apiUrl, formData);
 
             toast({ title: "Cadastro realizado!", description: (response as any)?.message || "Sucesso!", variant: "success" });

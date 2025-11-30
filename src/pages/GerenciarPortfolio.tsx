@@ -53,7 +53,7 @@ const GerenciarPortfolio = () => {
         return;
       }
 
-      const resp = await fetch('http://127.0.0.1:8000/api/accounts/providers-edit/', {
+      const resp = await fetch('https://fazpramim-back.onrender.com/api/accounts/providers-edit/', {
         method: 'GET',
         headers: {
           'Authorization': `Token ${token}`,
@@ -116,7 +116,7 @@ const GerenciarPortfolio = () => {
         console.log(k, v);
       }
 
-      const resp = await fetch('http://127.0.0.1:8000/api/accounts/portfolio/add/', {
+      const resp = await fetch('https://fazpramim-back.onrender.com/api/accounts/portfolio/add/', {
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,
@@ -164,7 +164,7 @@ const GerenciarPortfolio = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const resp = await fetch(`http://127.0.0.1:8000/api/accounts/portfolio/${id}/delete/`, {
+      const resp = await fetch(`https://fazpramim-back.onrender.com/api/accounts/portfolio/${id}/delete/`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Token ${token}`,
@@ -198,7 +198,7 @@ const GerenciarPortfolio = () => {
 
   const getPhotoUrl = (path: string) => {
     if (path.startsWith('http')) return path;
-    return `http://127.0.0.1:8000${path}`;
+    return `https://fazpramim-back.onrender.com${path}`;
   };
 
   return (

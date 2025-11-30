@@ -104,7 +104,7 @@ const SolicitarServico = () => {
     };
 
     try {
-      const apiUrl = `http://127.0.0.1:8000/api/accounts/providers/${id}/requests/`;
+      const apiUrl = `https://fazpramim-back.onrender.com/api/accounts/providers/${id}/requests/`;
       const responseData = await apiPost(apiUrl, apiPayload);
 
       toast({

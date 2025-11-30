@@ -23,7 +23,7 @@ const HomePrestador = () => {
         const token = localStorage.getItem('token');
         
         // Buscar todas as solicitações
-        const requestsResponse = await fetch('http://127.0.0.1:8000/api/accounts/provider/requests/', {
+        const requestsResponse = await fetch('https://fazpramim-back.onrender.com/api/accounts/provider/requests/', {
           headers: { 'Authorization': `Token ${token}` }
         });
         
@@ -35,7 +35,7 @@ const HomePrestador = () => {
         }
         
         // Buscar avaliações
-        const reviewsResponse = await fetch('http://127.0.0.1:8000/api/accounts/provider/reviews/', {
+        const reviewsResponse = await fetch('https://fazpramim-back.onrender.com/api/accounts/provider/reviews/', {
           headers: { 'Authorization': `Token ${token}` }
         });
         

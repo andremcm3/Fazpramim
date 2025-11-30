@@ -65,7 +65,7 @@ const Search = () => {
       const enriched = await Promise.all(
         results.map(async (p) => {
           try {
-            const detRes = await fetch(`http://127.0.0.1:8000/api/accounts/providers/${p.id}/`, {
+            const detRes = await fetch(`https://fazpramim-back.onrender.com/api/accounts/providers/${p.id}/`, {
               method: "GET",
               headers: { "Content-Type": "application/json" },
             });
@@ -140,7 +140,7 @@ const Search = () => {
   const getPhotoUrl = (path: string | null) => {
     if (!path) return undefined;
     if (path.startsWith("http")) return path;
-    return `http://127.0.0.1:8000${path}`;
+    return `https://fazpramim-back.onrender.com${path}`;
   };
 
  

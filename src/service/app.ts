@@ -38,16 +38,16 @@ async function apiPostWithToken(url: string, token: string) {
 }
 
 export async function acceptServiceRequest(id: number, token: string) {
-  return apiPostWithToken(`http://127.0.0.1:8000/api/accounts/requests/${id}/accept/`, token);
+  return apiPostWithToken(`https://fazpramim-back.onrender.com/api/accounts/requests/${id}/accept/`, token);
 }
 
 export async function rejectServiceRequest(id: number, token: string) {
-  return apiPostWithToken(`http://127.0.0.1:8000/api/accounts/requests/${id}/reject/`, token);
+  return apiPostWithToken(`https://fazpramim-back.onrender.com/api/accounts/requests/${id}/reject/`, token);
 }
 
 // Chat functions
 export async function getChatMessages(requestId: number, token: string) {
-  const res = await fetch(`http://127.0.0.1:8000/api/accounts/requests/${requestId}/chat/`, {
+  const res = await fetch(`https://fazpramim-back.onrender.com/api/accounts/requests/${requestId}/chat/`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -64,7 +64,7 @@ export async function getChatMessages(requestId: number, token: string) {
 }
 
 export async function sendChatMessage(requestId: number, content: string, token: string) {
-  const res = await fetch(`http://127.0.0.1:8000/api/accounts/requests/${requestId}/chat/`, {
+  const res = await fetch(`https://fazpramim-back.onrender.com/api/accounts/requests/${requestId}/chat/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -83,7 +83,7 @@ export async function sendChatMessage(requestId: number, content: string, token:
 
 // Complete service function
 export async function completeServiceRequest(requestId: number, token: string) {
-  return apiPostWithToken(`http://127.0.0.1:8000/api/accounts/requests/${requestId}/complete/`, token);
+  return apiPostWithToken(`https://fazpramim-back.onrender.com/api/accounts/requests/${requestId}/complete/`, token);
 }
 
 // Review (Avaliação) - supports optional photo via multipart/form-data
@@ -97,7 +97,7 @@ export async function submitServiceReview(
   if (payload.comment) formData.append("comment", payload.comment);
   if (payload.photo) formData.append("photo", payload.photo);
 
-  const res = await fetch(`http://127.0.0.1:8000/api/accounts/requests/${requestId}/review/`, {
+  const res = await fetch(`https://fazpramim-back.onrender.com/api/accounts/requests/${requestId}/review/`, {
     method: "POST",
     headers: {
       Authorization: `Token ${token}`,
@@ -115,7 +115,7 @@ export async function submitServiceReview(
 
 // Provider details (for avatar and rating)
 export async function getProviderDetails(providerId: number, token: string) {
-  const res = await fetch(`http://127.0.0.1:8000/api/accounts/providers/${providerId}/`, {
+  const res = await fetch(`https://fazpramim-back.onrender.com/api/accounts/providers/${providerId}/`, {
     method: "GET",
     headers: {
       "Authorization": `Token ${token}`,
