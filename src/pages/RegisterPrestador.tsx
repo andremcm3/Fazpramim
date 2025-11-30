@@ -203,7 +203,7 @@ const RegisterPrestador = () => {
     if (fotoPerfil) formData.append("profile_photo", fotoPerfil);
 
     try {
-      const apiUrl = "http://127.0.0.1:8000/api/accounts/register/provider/";
+      const apiUrl = "https://fazpramim-back.onrender.com/api/accounts/register/provider/";
       
       const response = await apiPost(apiUrl, formData);
 

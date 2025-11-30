@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
-// 🔹 Interface Real (Baseada no seu ProviderListSerializer)
+
 interface Provider {
   id: number;
   full_name: string;
@@ -19,7 +19,7 @@ interface Provider {
   email: string;
   average_rating?: number;
   total_reviews?: number;
-  // Campos mockados (ainda não vêm do backend, mas mantemos para o layout não quebrar)
+  
   avaliacao?: number;
   numAvaliacoes?: number;
   preco?: string;
@@ -34,17 +34,17 @@ const Search = () => {
   const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   
-  // Estados dos filtros
+
   const [locationFilter, setLocationFilter] = useState("");
   const [minRatingFilter, setMinRatingFilter] = useState("");
 
-  // 🎯 Função para buscar prestadores na API Real
+ 
   const fetchProviders = async (term = "") => {
     setLoading(true);
     setError(null);
     try {
-      // URL do Backend (O filtro ?search= é processado automaticamente pelo Django)
-      const url = `http://127.0.0.1:8000/api/accounts/providers/?search=${encodeURIComponent(term)}`;
+     
+      const url = `https://fazpramim-back.onrender.com/api/accounts/providers/?search=${encodeURIComponent(term)}`;
       
       const response = await fetch(url, {
         method: "GET",
@@ -58,10 +58,10 @@ const Search = () => {
       }
 
       const data = await response.json();
-      // O DRF pode retornar paginado ({ results: [] }) ou lista direta [].
+      
       const results: Provider[] = Array.isArray(data) ? data : data.results || [];
 
-      // Enriquecer com média e total de avaliações consultando o detalhe
+      
       const enriched = await Promise.all(
         results.map(async (p) => {
           try {
@@ -82,17 +82,17 @@ const Search = () => {
         })
       );
       
-      // 🎯 Aplicar filtros locais
+  
       let filtered = enriched;
       
-      // Filtro por cidade
+     
       if (locationFilter.trim()) {
         filtered = filtered.filter(p => 
           p.service_address?.toLowerCase().includes(locationFilter.toLowerCase())
         );
       }
       
-      // Filtro por avaliação mínima
+     
       if (minRatingFilter) {
         const minRating = parseFloat(minRatingFilter);
         filtered = filtered.filter(p => (p.average_rating ?? 0) >= minRating);
@@ -108,22 +108,22 @@ const Search = () => {
     }
   };
 
-  // Carrega dados ao abrir a página
+
   useEffect(() => {
     fetchProviders();
   }, []);
 
-  // Handler de busca
+ 
   const handleSearch = () => {
     fetchProviders(searchTerm);
   };
   
-  // Handler para aplicar filtros
+  
   const handleApplyFilters = () => {
     fetchProviders(searchTerm);
   };
   
-  // Handler para limpar filtros
+  
   const handleClearFilters = () => {
     setLocationFilter("");
     setMinRatingFilter("");
@@ -136,14 +136,14 @@ const Search = () => {
     }
   };
 
-  // Helper para corrigir URL da imagem (adiciona domínio do Django se for relativo)
+  
   const getPhotoUrl = (path: string | null) => {
     if (!path) return undefined;
     if (path.startsWith("http")) return path;
     return `http://127.0.0.1:8000${path}`;
   };
 
-  // Helper para renderizar estrelas baseado na média do backend
+ 
   const renderStars = (rating: number = 0) => {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
