@@ -4,11 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Upload, CheckCircle, AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 
-// 🎯 Funções de Suporte (Mocks e apiPost) definidas internamente para autocontenção.
 
-/**
- * Função para fazer a chamada à API com lógica de retentativa e formatação de erro.
- */
+ 
 const apiPost = async (url: string, payload: any, retries = 3, delay = 1000) => {
     // Detecta se o payload é FormData (para upload de arquivos)
     const isFormData = payload instanceof FormData;

@@ -26,7 +26,7 @@ const AvaliacoesPrestador = () => {
           const avaliacoesFormatadas = data.map((review: any) => ({
             id: review.id,
             cliente: review.client_name || 'Cliente',
-            servico: 'Serviço realizado', // TODO: Backend pode incluir descrição do serviço
+            servico: 'Serviço realizado', 
             nota: review.client_rating,
             comentario: review.client_comment || '',
             data: new Date(review.client_reviewed_at).toLocaleDateString('pt-BR'),

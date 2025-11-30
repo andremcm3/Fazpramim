@@ -42,12 +42,10 @@ const App = () => (
             <Route path="/search" element={<Search />} />
             <Route path="/prestador/:id" element={<PrestadorDetails />} />
             
-            {/* 🚨 CORREÇÃO 1: Mudado de '/solicitar-servico/:id' para '/solicitar/:id' 
-                para bater com o link do botão no PrestadorDetails */}
+            
             <Route path="/solicitar/:id" element={<SolicitarServico />} />
             
-            {/* 🚨 CORREÇÃO 2: Adicionada rota para visualizar a solicitação criada.
-                Por enquanto, apontamos para o Chat, que é o fluxo natural. */}
+            
             <Route path="/solicitacao/:id" element={<Chat />} />
             
             <Route path="/chat/:id" element={<Chat />} />

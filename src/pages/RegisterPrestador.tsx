@@ -14,9 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
-// 🎯 Função de API Integrada
 const apiPost = async (url: string, payload: any) => {
-    // Se for FormData, o browser define o Content-Type automaticamente
     const isFormData = payload instanceof FormData;
     const headers = isFormData ? {} : { 'Content-Type': 'application/json' };
     const body = isFormData ? payload : JSON.stringify(payload);
@@ -29,7 +27,6 @@ const apiPost = async (url: string, payload: any) => {
 
     if (!response.ok) {
         const errorBody = await response.json().catch(() => ({ message: 'Erro desconhecido na requisição' }));
-        // Lança string JSON para ser parseada no catch
         throw new Error(JSON.stringify(errorBody)); 
     }
 
@@ -74,7 +71,6 @@ const RegisterPrestador = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
-  // Estados para arquivos
   const [documento, setDocumento] = useState<File | null>(null);
   const [certificacoes, setCertificacoes] = useState<File | null>(null);
   const [fotoPerfil, setFotoPerfil] = useState<File | null>(null);
@@ -103,12 +99,11 @@ const RegisterPrestador = () => {
 
     if (score <= 2) return { score, text: "Fraca", color: "text-destructive" };
     if (score <= 3) return { score, text: "Média", color: "text-yellow-500" };
-    return { score, text: "Forte", color: "text-green-600" }; // Ajustei para verde para ficar consistente
+    return { score, text: "Forte", color: "text-green-600" };
   };
 
   const passwordStrength = getPasswordStrength(senha || "");
 
-  // Formata telefone enquanto o usuário digita: (DD) 99999-9999 ou (DD) 9999-9999
   const formatPhone = (value: string) => {
     if (!value) return "";
     const digits = String(value).replace(/\D/g, '').slice(0, 11);
@@ -176,7 +171,6 @@ const RegisterPrestador = () => {
   };
 
   const onSubmit = async (data: PrestadorFormData) => {
-    // Validação de arquivos obrigatórios
     if (!documento) {
       setFeedback({
         type: 'error',
@@ -184,42 +178,26 @@ const RegisterPrestador = () => {
       });
       return;
     }
-    // Nota: Certificações são opcionais no model do Django (blank=True), 
-    // mas se quiser obrigar, descomente abaixo:
-    /*
-    if (!certificacoes) {
-        setFeedback({ type: 'error', message: 'Envie suas certificações.' });
-        return;
-    }
-    */
 
     setIsLoading(true);
     setFeedback(null);
 
-    // 🔹 CONSTRUINDO O FORMDATA PARA O BACKEND
     const formData = new FormData();
     
-    // Campos do User (Auth)
     formData.append("username", data.email); 
     formData.append("email", data.email);
     formData.append("password", data.senha);
     formData.append("password2", data.confirmarSenha);
 
-    // Campos do ProviderProfile (Mapeando do seu form para o backend)
     formData.append("full_name", data.nomeCompleto);
-    // Backend exige professional_email, usamos o mesmo do login por enquanto
     formData.append("professional_email", data.email); 
     formData.append("service_address", data.endereco);
     formData.append("technical_qualification", data.qualificacaoTecnica);
     formData.append("city", data.cidade);
     formData.append("state", data.estado);
     
-    // Nota: O backend ProviderProfile atual não tem campo 'phone'. 
-    // Se quiser salvar o telefone, precisaremos adicionar esse campo ao modelo ProviderProfile no Django.
-    // Por enquanto, ele será ignorado pelo backend, mas enviamos caso adicione depois.
     formData.append("phone", data.telefone);
 
-    // Arquivos (Nomes devem bater com ProviderRegisterSerializer)
     if (documento) formData.append("identity_document", documento);
     if (certificacoes) formData.append("certifications", certificacoes);
     if (fotoPerfil) formData.append("profile_photo", fotoPerfil);
@@ -229,7 +207,6 @@ const RegisterPrestador = () => {
       
       const response = await apiPost(apiUrl, formData);
 
-      // Armazenar token, user e provider_profile no localStorage
       if ((response as any).token) {
         localStorage.setItem('token', (response as any).token);
       }
@@ -257,7 +234,6 @@ const RegisterPrestador = () => {
     } catch (error: any) {
       let errorMessage = 'Erro interno. Tente novamente.';
       try {
-          // Tenta ler o erro estruturado do Django
           const json = JSON.parse(error.message);
           if (typeof json === 'object' && json !== null) {
               const key = Object.keys(json)[0];
@@ -306,7 +282,6 @@ const RegisterPrestador = () => {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                {/* Nome Completo */}
                 <div className="form-field">
                   <Label htmlFor="nomeCompleto">Nome Completo *</Label>
                   <Input
@@ -320,7 +295,6 @@ const RegisterPrestador = () => {
                   )}
                 </div>
 
-                {/* Email */}
                 <div className="form-field">
                   <Label htmlFor="email">E-mail Profissional *</Label>
                   <Input
@@ -335,7 +309,6 @@ const RegisterPrestador = () => {
                   )}
                 </div>
 
-                {/* Senha */}
                 <div className="form-field">
                   <Label htmlFor="senha">Senha *</Label>
                   <div className="relative">
@@ -376,7 +349,6 @@ const RegisterPrestador = () => {
                   )}
                 </div>
 
-                {/* Confirmar Senha */}
                 <div className="form-field">
                   <Label htmlFor="confirmarSenha">Confirmar Senha *</Label>
                   <div className="relative">
@@ -400,7 +372,6 @@ const RegisterPrestador = () => {
                   )}
                 </div>
 
-                {/* Telefone */}
                 <div className="form-field">
                   <Label htmlFor="telefone">Telefone *</Label>
                   {(() => {
@@ -426,7 +397,6 @@ const RegisterPrestador = () => {
                   )}
                 </div>
 
-                {/* Endereço */}
                 <div className="form-field">
                   <Label htmlFor="endereco">Endereço de Atuação *</Label>
                   <Textarea
@@ -454,7 +424,6 @@ const RegisterPrestador = () => {
                   </div>
                 </div>
 
-                {/* Qualificação Técnica */}
                 <div className="form-field">
                   <Label htmlFor="qualificacaoTecnica">Qualificação Técnica *</Label>
                   <Textarea
@@ -472,7 +441,6 @@ const RegisterPrestador = () => {
                   )}
                 </div>
 
-                {/* Upload de Foto de Perfil */}
                 <div className="form-field">
                   <Label>Foto de Perfil</Label>
                   <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors">
@@ -510,7 +478,6 @@ const RegisterPrestador = () => {
                   </p>
                 </div>
 
-                {/* Upload de Documento */}
                 <div className="form-field">
                   <Label>Documento de Identidade *</Label>
                   <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-accent transition-colors">
@@ -545,7 +512,6 @@ const RegisterPrestador = () => {
                   </div>
                 </div>
 
-                {/* Upload de Certificações */}
                 <div className="form-field">
                   <Label>Certificações ou Currículo</Label>
                   <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors">
@@ -583,7 +549,6 @@ const RegisterPrestador = () => {
                   </p>
                 </div>
 
-                {/* Feedback Messages */}
                 {feedback && (
                   <Alert
                     className={
@@ -609,7 +574,6 @@ const RegisterPrestador = () => {
                   </Alert>
                 )}
 
-                {/* Submit Button */}
                 <Button
                   type="submit"
                   className="w-full bg-accent hover:bg-accent-hover"

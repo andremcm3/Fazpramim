@@ -4,8 +4,7 @@ import {
   MapPin, Star, Clock, MessageCircle, CheckCircle, Award, Phone, Mail, ArrowLeft, Loader2, Briefcase 
 } from "lucide-react";
 
-// --- COMPONENTES UI MOCKADOS (Para garantir que funcione aqui e no seu VS Code) ---
-// Se preferir, pode substituir pelos seus imports: import { Button } from "@/components/ui/button"; etc.
+
 
 const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'default' | 'outline' | 'ghost', size?: 'default' | 'lg' | 'sm' }> = ({ children, className = "", variant = 'default', size = 'default', ...props }) => {
     const base = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50";

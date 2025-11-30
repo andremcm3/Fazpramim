@@ -29,7 +29,7 @@ const HistoricoPrestador = () => {
             descricao: servico.description,
             data: new Date(servico.created_at).toLocaleDateString('pt-BR'),
             valor: servico.proposed_value ? `R$ ${parseFloat(servico.proposed_value).toFixed(2)}` : 'N/A',
-            // Usa rating específico da solicitação se existir; caso contrário undefined
+            
             avaliacao: typeof servico.client_rating === 'number' ? servico.client_rating : undefined,
           }));
           setServicos(servicosFormatados);

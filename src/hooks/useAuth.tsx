@@ -21,7 +21,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Carregar usuário do localStorage ao iniciar
+ 
     const storedUser = localStorage.getItem('user');
     const storedToken = localStorage.getItem('token');
 
@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         console.log('useAuth - raw do localStorage:', raw);
 
-        // Detecta se é prestador por vários campos possíveis
+
         const isPrestador = raw.tipo === 'prestador' || 
                            raw.is_provider === true || 
                            raw.is_prestador === true ||
@@ -40,8 +40,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                            raw.role === 'provider' ||
                            raw.role === 'prestador';
 
-        // Monta o nome preferindo campos mais completos (first/last/name/full_name),
-        // com fallback para `nome`, `username` ou local-part do e-mail.
+      
         const firstName = raw.first_name || raw.firstname || raw.firstName || '';
         const lastName = raw.last_name || raw.lastname || raw.lastName || '';
         const nameField = raw.name || raw.full_name || raw.fullName || raw.fullname || raw.full_name_translated || '';
@@ -53,9 +52,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (firstName) parts.push(firstName);
           if (lastName) parts.push(lastName);
           if (parts.length > 0) return parts.join(' ').trim();
-          // Prefer explicit full name fields from backend
+          
           if (nameField) return nameField;
-          // Only use raw.nome/raw.username if they don't look like an email
+          
           if (raw.nome && !looksLikeEmail(raw.nome)) return raw.nome;
           if (raw.username && !looksLikeEmail(raw.username)) return raw.username;
           if (raw.email) return String(raw.email).split('@')[0];
@@ -92,10 +91,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (email: string, senha: string) => {
-    // Simular API call
+    
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Mock user - em produção isso viria do backend
+    
     const localPart = String(email).split('@')[0] || '';
     const capitalize = (s: string) =>
       s
@@ -108,7 +107,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       id: '1',
       email,
       nome: capitalize(localPart),
-      tipo: 'cliente', // fallback apenas para cenário de mock
+      tipo: 'cliente', 
     };
 
     setUser(mockUser);

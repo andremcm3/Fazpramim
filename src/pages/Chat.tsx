@@ -220,15 +220,15 @@ const Chat = () => {
                     key={message.id}
                     className={`flex ${
                       isMyMessage(message)
-                        ? "justify-end" // minhas mensagens → direita
-                        : "justify-start" // do outro usuário → esquerda
+                        ? "justify-end" 
+                        : "justify-start" 
                     }`}
                   >
                     <div
                       className={`max-w-[70%] rounded-lg p-3 shadow ${
                         isMyMessage(message)
-                          ? "bg-primary text-primary-foreground" // bolha azul
-                          : "bg-muted" // bolha cinza
+                          ? "bg-primary text-primary-foreground" 
+                          : "bg-muted" 
                       }`}
                     >
                       <p className="text-sm">{message.content}</p>
